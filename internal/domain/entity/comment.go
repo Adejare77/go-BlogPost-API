@@ -2,9 +2,11 @@ package entity
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
-type CommentID string
+type CommentID uuid.UUID
 
 type Comment struct {
 	ID CommentID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
