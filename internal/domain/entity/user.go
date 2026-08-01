@@ -8,7 +8,7 @@ type User struct {
 	ID UserID `gorm:"primaryKey;default:int"`
 	Email string `gorm:"not null;uniqueIndex"`
 	FullName string `gorm:"not null"`
-	Password string
+	Password *string
 	IsActive bool `gorm:"not null;default:true"`
 	IsStaff bool `gorm:"not null;default:false"`
 	CreatedAt time.Time
