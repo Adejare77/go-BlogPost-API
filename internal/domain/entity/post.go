@@ -2,9 +2,11 @@ package entity
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
-type PostID string
+type PostID uuid.UUID
 
 type Post struct {
 	ID PostID `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
