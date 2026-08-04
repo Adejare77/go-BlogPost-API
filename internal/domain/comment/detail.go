@@ -14,6 +14,7 @@ type AuthorSummary struct {
 type CommentDetail struct {
 	ID entity.CommentID
 	Author AuthorSummary
+	PostID entity.PostID
 	Content string
 	Likes int
 	Liked bool
@@ -25,6 +26,7 @@ type CommentDetail struct {
 type ReplySummary struct {
 	ID entity.CommentID
 	Author AuthorSummary
+	PostID entity.PostID
 	ParentID entity.CommentID
 	Excerpt string
 	Likes int
