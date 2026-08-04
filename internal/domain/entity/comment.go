@@ -15,7 +15,7 @@ type Comment struct {
 	PostID PostID `gorm:"not null;type:uuid"`
 	Content string `gorm:"not null"`
 	ParentID *CommentID `gorm:"type:uuid;default:null"`
-	Like []Like `gorm:"polymorphic:Likeable;polymorphicValue:Comment"`
+	Like []Like `gorm:"polymorphic:Likeable;polymorphicValue:comment"`
 	Replies []Comment `gorm:"foreignKey:ParentID;constraint:OnDelete:CASCADE"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
