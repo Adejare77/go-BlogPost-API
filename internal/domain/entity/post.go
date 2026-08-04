@@ -15,7 +15,7 @@ type Post struct {
 	Title string `gorm:"not null;size:100"`
 	Content string `gorm:"not null"`
 	Comments []Comment `gorm:"foreignKey:PostID;constraint:OnDelete:CASCADE"`
-	Like []Like `gorm:"constraint:OnDelete:CASCADE;polymorphic:Likeable;polymorphicValue:Post"`
+	Like []Like `gorm:"constraint:OnDelete:CASCADE;polymorphic:Likeable;polymorphicValue:post"`
 	IsPublished bool `gorm:"not null;default:false"`
 	CreatedAt time.Time `gorm:"index"`
 	UpdatedAt time.Time
