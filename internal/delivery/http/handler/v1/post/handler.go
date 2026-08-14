@@ -69,10 +69,11 @@ func (h *PostHandler) FindByID(ctx *gin.Context) {
 	}
 	postID := entity.PostID(postId)
 
-	var userID *entity.UserID
-	if userIdVal, exist := ctx.Get("userId"); exist {
-		id := userIdVal.(entity.UserID)
-		userID = &id
+	var userID entity.UserID
+
+	value, exist := ctx.Get("UserID")
+	if exist {
+		userID = value.(entity.UserID)
 	}
 
 	post, err := h.postService.FindByID(postID, userID)
@@ -144,9 +145,11 @@ func (h *PostHandler) Update(ctx *gin.Context) {
 	}
 
 	postID := entity.PostID(id)
+	userID := ctx.MustGet("userID").(entity.UserID)
 
 	post := entity.Post{
 		ID: postID,
+		AuthorID: userID,
 		Title: req.Title,
 		Content: req.Content,
 		IsPublished: req.IsPublished,
@@ -224,7 +227,14 @@ func (h *PostHandler) DeleteByID(ctx *gin.Context) {
 }
 
 func (h *PostHandler) FindAll(ctx *gin.Context) {
-	response, err := h.postService.FindAll()
+	var userID entity.UserID
+
+	value, exist := ctx.Get("UserID")
+	if exist {
+		userID = value.(entity.UserID)
+	}
+
+	response, err := h.postService.FindAll(userID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
