@@ -1,0 +1,194 @@
+package postgres
+
+import (
+	"fmt"
+
+	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
+	"github.com/Adejare77/go-BlogPost-API/internal/domain/post"
+	"gorm.io/gorm"
+)
+
+type PostRepository struct {
+	db *gorm.DB
+}
+
+func NewPostRepository(db *gorm.DB) *PostRepository {
+	return &PostRepository{
+		db: db,
+	}
+}
+
+func (repo *PostRepository) Create(post *entity.Post) error {
+	return repo.db.Create(post).Error
+}
+
+func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID) (*post.PostDetail, error) {
+	var detail PostDetailRow
+	var comments []post.CommentSummary
+
+
+	err := repo.db.Model(&entity.Post{}).
+	Select(`
+		posts.id AS id,
+		users.id AS author_id,
+		users.full_name AS author_full_name,
+		posts.title AS title,
+		posts.content AS content,
+		posts.is_published,
+		posts.created_at,
+
+		(
+			SELECT COUNT(*),
+			FROM likes
+			WHERE likes.likeable_id = posts.id
+			AND likes.likeable_type = 'post'
+		) AS likes,
+
+		(
+			SELECT COUNT(*),
+			FROM comments
+			WHERE comments.post_id = posts.id
+			AND comments.parent_id IS NULL
+		) AS comment_count,
+
+		EXISTS (
+			SELECT 1
+			FROM likes
+			WHERE likes.likeable_id = posts.id
+			AND likes.likeable_type = 'post'
+			AND likes.user_id = ?
+		) AS liked
+	`, userID).
+	Joins("JOIN users ON users.id = posts.author_id").
+	Where("posts.id = ?", postID).
+	Scan(&detail).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch post with id %s: %w", postID, err)
+	}
+
+	err = repo.db.Model(&entity.Comment{}).
+	Select(`
+		id,
+		users.id AS author_id,
+		users.full_name AS author_full_name,
+		post_id,
+		Excerpt,
+
+		(
+			SELECT COUNT(*)
+			FROM likes
+			WHERE likes.likeable_id = comments.id
+			AND likes.likeable_type = 'comment'
+		) AS likes
+
+		(
+			SELECT COUNT(*)
+			FROM comments AS replies
+			WHERE replies.parent_id = comments.id
+		) AS replies
+
+		EXISTS (
+			SELECT 1
+			FROM likes
+			WHERE likes.likeable_id = comments.id
+			AND likes.likeable_type = 'comment'
+		) AS liked
+	`).
+	Joins("JOIN users ON users.id = comments.author_id").
+	Where("comments.post_id = ?", postID).
+	Where("comments.parent_id IS NULL").
+	Order("likes DESC").
+	Limit(3).
+	Scan(&comments).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch comments for post with id %s: %w", postID, err)
+	}
+
+	detail.TopComments = comments
+
+	return detail.ToPostDetail(), nil
+}
+
+
+func (repo *PostRepository) Update(post *entity.Post) (*post.PostDetail, error) {
+	result := repo.db.Model(&entity.Post{}).
+	Where("id = ?", post.ID).Updates(post)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("Error updating post with ID %s: %w", post.ID, result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	return repo.FindByID(post.ID, post.AuthorID)
+}
+
+func (repo *PostRepository) DeleteByID(postID entity.PostID, userID entity.UserID) error {
+	result := repo.db.
+	Where("id = ? AND author_id = ?", postID, userID).
+	Delete(&entity.Post{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (repo *PostRepository) FindAll(userID entity.UserID) ([]post.PostList, error) {
+	var list []PostListRow
+
+	if err := repo.db.Model(&entity.Post{}).
+	Select(`
+		posts.id AS id,
+		users.id AS author_id,
+		users.full_name AS author_full_name,
+		posts.title AS title,
+		post.content AS content
+		posts.is_published,
+		posts.created_at AS created_at
+		(
+			SELECT COUNT(*)
+			FROM likes
+			WHERE likes.likeable_id = posts.id
+			AND likes.likeable_type = 'post'
+			AND likes.user_id = ?
+		) AS likes
+
+		(
+			SELECT COUNT(*)
+			FROM comments
+			WHERE comments.post_id = posts.id
+			AND comments.parent_id IS NULL
+		) AS comment_count
+
+		EXISTS (
+			SELECT 1
+			FROM likes
+			WHERE likes.user_id = ?
+			AND likes.likeable_type = 'post'
+			AND likes.likeable_id = posts.id
+		) AS liked
+	`).
+	Joins("JOIN users ON users.id = posts.author_id").
+	Order("created_at DESC, likes DESC").
+	Scan(&list).Error; err != nil {
+		return nil, err
+	}
+
+	posts := make([]post.PostList, len(list))
+
+	for i, p := range list {
+		posts[i] = p.ToPostList()
+	}
+
+	return posts, nil
+}
