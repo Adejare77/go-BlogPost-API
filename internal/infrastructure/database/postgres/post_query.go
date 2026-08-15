@@ -61,7 +61,7 @@ func (p PostListRow) ToPostList() post.PostList {
 			FullName: p.FullName,
 		},
 		Title: p.Title,
-		Excerpt: ToExercept(p.Content),
+		Excerpt: ToExcerpt(p.Content),
 		Likes: p.Likes,
 		Liked: p.Liked,
 		IsPublished: p.IsPublished,
@@ -70,7 +70,7 @@ func (p PostListRow) ToPostList() post.PostList {
 	}
 }
 
-func ToExercept(content string) string {
+func ToExcerpt(content string) string {
 	words := strings.Fields(content)
 
 	if len(words) > 30 {
