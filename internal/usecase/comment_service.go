@@ -24,3 +24,7 @@ func (s *CommentService) Update(comment *entity.Comment) (*comment.CommentDetail
 func (s *CommentService) DeleteByID(commentID entity.CommentID, userID entity.UserID) error {
 	return s.repo.DeleteByID(commentID, userID)
 }
+
+func (s *CommentService) FindByPostID(postID entity.PostID, userID entity.UserID) ([]comment.CommentList, error) {
+	return s.repo.FindByPostID(postID, userID)
+}
