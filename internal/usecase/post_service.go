@@ -13,7 +13,7 @@ func (s *PostService) Create(post *entity.Post) error {
 	return s.repo.Create(post)
 }
 
-func (s *PostService) FindByID(postID entity.PostID, userID *entity.UserID) (*post.PostDetail, error) {
+func (s *PostService) FindByID(postID entity.PostID, userID entity.UserID) (*post.PostDetail, error) {
 	return s.repo.FindByID(postID, userID)
 }
 
@@ -25,8 +25,8 @@ func (s *PostService) DeleteByID(postID entity.PostID, userID entity.UserID) err
 	return s.repo.DeleteByID(postID, userID)
 }
 
-func (s *PostService) FindAll() ([]post.PostList, error) {
-	return s.repo.FindAll()
+func (s *PostService) FindAll(userID entity.UserID) ([]post.PostList, error) {
+	return s.repo.FindAll(userID)
 }
 
 // func (s *PostService) FindPostDetail(postID entity.PostID, userID entity.UserID) ([]*entity.PostDetail, error) {
