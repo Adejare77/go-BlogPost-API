@@ -62,7 +62,7 @@ func (repo *CommentRepository) FindByID(commentID entity.CommentID, userID entit
 	}
 
 
-	var topReplies []ReplySummaryRow
+	var topRepliesRow []ReplySummaryRow
 
 	if err := repo.db.Model(&entity.Comment{}).
 	Select(`
@@ -91,7 +91,7 @@ func (repo *CommentRepository) FindByID(commentID entity.CommentID, userID entit
 			SELECT COUNT(*)
 			FROM comments
 			WHERE parent_id = ?
-		)
+		) AS comment_count
 
 	`, userID, commentID).
 	Joins("JOIN users ON users.id = comments.author_id").
@@ -99,16 +99,96 @@ func (repo *CommentRepository) FindByID(commentID entity.CommentID, userID entit
 	Where("parent_id = ?", commentID).
 	Order("likes DESC created_at DESC").
 	Limit(3).
-	Scan(&topReplies).Error; err != nil {
+	Scan(&topRepliesRow).Error; err != nil {
 		return nil, fmt.Errorf("error fetching comment with id %s replies: %w", commentID, err)
+	}
+
+	topReplies := make([]comment.ReplySummary, len(topRepliesRow))
+
+	for i, reply := range topRepliesRow {
+		topReplies[i] = reply.ToReplySummary()
 	}
 
 	commentDetail.TopReplies = topReplies
 
-	// convert to commentDetail
-	return &CommentDetailRow, nil
+	return commentDetail.ToCommentDetail(), nil
 }
 
-func (repo *CommentRepository) Update(comment *entity.CommentID) (*comment.CommentDetail, error) {
+func (repo *CommentRepository) Update(comment *entity.Comment) (*comment.CommentDetail, error) {
+	result := repo.db.Model(&entity.Comment{}).
+	Where("id = ? AND author_id = ?", comment.ID, comment.AuthorID).
+	Updates(comment)
 
+	if result.Error != nil {
+		return nil, fmt.Errorf("Unable to update comment with ID %s: %w", comment.ID, result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	return repo.FindByID(comment.ID, comment.AuthorID)
+}
+
+func (repo *CommentRepository) DeleteByID(commentID entity.CommentID, userID entity.UserID) error {
+	result:= repo.db.
+	Where("id = ? AND author_id = ?", commentID, userID).
+	Delete(&entity.Comment{})
+
+	if result.Error != nil {
+		return fmt.Errorf("error deleting comment with ID %s: %w", commentID, result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (repo *CommentRepository) FindByPostID(postID entity.PostID, userID entity.UserID) ([]comment.CommentList, error) {
+	var list []CommentListRow
+
+	repo.db.Model(&entity.Comment{}).
+	Select(`
+		comments.id AS id,
+		comments.author_id AS author_id,
+		users.full_name AS full_name,
+		comments.post_id AS post_id,
+		comments.content AS content
+		comments.created_at AS created_at
+
+		(
+			SELECT COUNT(*)
+			FROM likes
+			WHERE likes.likeable_id = comments.id
+			AND likes.likeable_type = 'comment'
+		) AS likes
+
+		EXISTS (
+			SELECT 1
+			FROM likes
+			WHERE likes.likeable_type = 'comment'
+			AND likes.likeable_id = comments.id
+			AND likes.user_id = ?
+		) AS liked
+
+		(
+			SELECT COUNT(*)
+			FROM comments AS replies
+			WHERE replies.parent_id IS NOT NULL
+			AND replies.parent_id = comments.id
+		) AS reply_count
+	`, userID).
+	Joins("JOIN users ON users.id = comments.author_id").
+	Where("post_id = ? AND parent_id IS NULL", postID).
+	Scan(&list)
+
+	comments := make([]comment.CommentList, len(list))
+
+	for i, comment := range list {
+		comments[i] = comment.ToCommentList()
+	}
+
+	return comments, nil
 }
