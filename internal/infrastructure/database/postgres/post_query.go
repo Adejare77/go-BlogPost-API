@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Adejare77/go-BlogPost-API/internal/domain/comment"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/post"
 )
@@ -18,7 +19,7 @@ type PostDetailRow struct {
 	Liked bool
 	IsPublished bool
 	CommentCount int
-	TopComments []post.CommentSummary
+	TopComments []comment.CommentList
 	CreatedAt time.Time
 }
 
