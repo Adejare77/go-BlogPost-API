@@ -109,7 +109,7 @@ func (h *CommentHandler) CreateReply(ctx *gin.Context) {
 }
 
 func (h *CommentHandler) FindByID(ctx *gin.Context) {
-	var userID *entity.UserID
+	var userID entity.UserID
 
 	id, err := uuid.Parse(ctx.Param("comment_id"))
 	if err != nil {
@@ -121,7 +121,7 @@ func (h *CommentHandler) FindByID(ctx *gin.Context) {
 	commentID := entity.CommentID(id)
 
 	if v, ok := ctx.Get("userID"); ok {
-		userID = v.(*entity.UserID)
+		userID = v.(entity.UserID)
 	}
 
 	comment, err := h.commentService.FindByID(commentID, userID)
