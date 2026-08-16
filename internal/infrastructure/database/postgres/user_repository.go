@@ -1,7 +1,10 @@
 package postgres
 
 import (
+	"fmt"
+
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
+	"github.com/Adejare77/go-BlogPost-API/internal/domain/user"
 	"gorm.io/gorm"
 )
 
@@ -19,16 +22,18 @@ func (repo *UserRepository) Create(user *entity.User) error {
 	return repo.db.Create(user).Error
 }
 
-func (repo *UserRepository) FindByID(userID entity.UserID) (*entity.User, error) {
-	var user entity.User
+func (repo *UserRepository) FindByID(userID entity.UserID) (*user.UserDetail, error) {
+	var user user.UserDetail
 
-	err := repo.db.First(&user, userID).Error
+	if err := repo.db.First(&user, userID).Error; err != nil {
+		return nil, fmt.Errorf("error finding user with ID %d: %w", userID, err)
+	}
 
-	return &user, err
+	return &user, nil
 }
 
-func (repo *UserRepository) FindAll() ([]entity.User, error) {
-	var users []entity.User
+func (repo *UserRepository) FindAll() ([]user.UserDetail, error) {
+	var users []user.UserDetail
 
 	err := repo.db.Find(&users).Error
 
@@ -36,22 +41,22 @@ func (repo *UserRepository) FindAll() ([]entity.User, error) {
 }
 
 func (repo *UserRepository) DeleteByID(userID entity.UserID) error {
-	var user entity.User
-	return repo.db.Delete(&user, userID).Error
+	return repo.db.Delete(&entity.User{}, userID).Error
 }
 
-func (repo *UserRepository) Update(user *entity.User) (*entity.User, error) {
-	var updateUser entity.User
+func (repo *UserRepository) Update(user *entity.User) (*user.UserDetail, error) {
 
-	if err := repo.db.Model(&entity.User{}).
+	result := repo.db.Model(&entity.User{}).
 	Where("id = ?", user.ID).
-	Updates(user).Error; err != nil {
-		return nil, err
+	Updates(user)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("error updating user with ID %d: %w", user.ID, result.Error)
 	}
 
-	if err := repo.db.First(&updateUser, user.ID).Error; err != nil {
-		return nil, err
+	if result.RowsAffected == 0 {
+		return nil, gorm.ErrRecordNotFound
 	}
 
-	return &updateUser, nil
+	return repo.FindByID(user.ID)
 }
