@@ -135,7 +135,8 @@ func (h *UserHandler) Update(ctx *gin.Context) {
 		Password: &req.Password,
 	}
 
-	if err := h.userService.Update(&user); err != nil {
+	result, err := h.userService.Update(&user);
+	if err != nil {
 		// work on error
 		ctx.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Internal server error. Try again later",
@@ -144,10 +145,10 @@ func (h *UserHandler) Update(ctx *gin.Context) {
 	}
 
 	response := UserResponse{
-		ID: user.ID,
-		FullName: user.FullName,
-		Email: user.Email,
-		CreatedAt: user.CreatedAt,
+		ID: result.ID,
+		FullName: result.FullName,
+		Email: result.Email,
+		CreatedAt: result.CreatedAt,
 	}
 
 	ctx.JSON(http.StatusOK, response)
