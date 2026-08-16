@@ -3,6 +3,7 @@ package postgres
 import (
 	"fmt"
 
+	"github.com/Adejare77/go-BlogPost-API/internal/domain/comment"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/post"
 	"gorm.io/gorm"
@@ -24,14 +25,12 @@ func (repo *PostRepository) Create(post *entity.Post) error {
 
 func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID) (*post.PostDetail, error) {
 	var detail PostDetailRow
-	var comments []post.CommentSummary
-
 
 	err := repo.db.Model(&entity.Post{}).
 	Select(`
 		posts.id AS id,
-		users.id AS author_id,
-		users.full_name AS author_full_name,
+		posts.author_id AS author_id,
+		users.full_name AS full_name,
 		posts.title AS title,
 		posts.content AS content,
 		posts.is_published,
@@ -67,13 +66,15 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 		return nil, fmt.Errorf("failed to fetch post with id %s: %w", postID, err)
 	}
 
+	var commentlist []CommentListRow
+
 	err = repo.db.Model(&entity.Comment{}).
 	Select(`
-		id,
-		users.id AS author_id,
-		users.full_name AS author_full_name,
-		post_id,
-		Excerpt,
+		comments.id AS id,
+		comments.author_id AS author_id,
+		users.full_name AS full_name,
+		comments.post_id,
+		comments.content AS content,
 
 		(
 			SELECT COUNT(*)
@@ -86,7 +87,7 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 			SELECT COUNT(*)
 			FROM comments AS replies
 			WHERE replies.parent_id = comments.id
-		) AS replies
+		) AS reply_count
 
 		EXISTS (
 			SELECT 1
@@ -100,10 +101,15 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 	Where("comments.parent_id IS NULL").
 	Order("likes DESC").
 	Limit(3).
-	Scan(&comments).Error
+	Scan(&commentlist).Error
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch comments for post with id %s: %w", postID, err)
+	}
+
+	comments := make([]comment.CommentList, len(commentlist))
+	for i, comment := range commentlist {
+		comments[i] = comment.ToCommentList()
 	}
 
 	detail.TopComments = comments
@@ -114,7 +120,7 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 
 func (repo *PostRepository) Update(post *entity.Post) (*post.PostDetail, error) {
 	result := repo.db.Model(&entity.Post{}).
-	Where("id = ?", post.ID).Updates(post)
+	Where("id = ? AND author_id = ?", post.ID, post.AuthorID).Updates(post)
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("Error updating post with ID %s: %w", post.ID, result.Error)
@@ -150,7 +156,7 @@ func (repo *PostRepository) FindAll(userID entity.UserID) ([]post.PostList, erro
 	Select(`
 		posts.id AS id,
 		users.id AS author_id,
-		users.full_name AS author_full_name,
+		users.full_name AS full_name,
 		posts.title AS title,
 		post.content AS content
 		posts.is_published,
@@ -160,7 +166,6 @@ func (repo *PostRepository) FindAll(userID entity.UserID) ([]post.PostList, erro
 			FROM likes
 			WHERE likes.likeable_id = posts.id
 			AND likes.likeable_type = 'post'
-			AND likes.user_id = ?
 		) AS likes
 
 		(
@@ -177,7 +182,7 @@ func (repo *PostRepository) FindAll(userID entity.UserID) ([]post.PostList, erro
 			AND likes.likeable_type = 'post'
 			AND likes.likeable_id = posts.id
 		) AS liked
-	`).
+	`, userID).
 	Joins("JOIN users ON users.id = posts.author_id").
 	Order("created_at DESC, likes DESC").
 	Scan(&list).Error; err != nil {
