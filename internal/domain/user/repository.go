@@ -8,4 +8,5 @@ type UserRepository interface {
 	FindAll() ([]entity.User, error)
 	DeleteByID(userID entity.UserID) error
 	Update(user *entity.User) (*entity.User, error)
+	FindByEmail(email string) (*entity.User, error)
 }
