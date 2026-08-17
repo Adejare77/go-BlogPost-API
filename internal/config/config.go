@@ -18,6 +18,9 @@ type AppConfig struct {
 	Jwt string
 	LogLevel string
 	Port string
+
+	AccessTokenTTL time.Duration
+	RefreshTokenTTL time.Duration
 }
 
 type DBConfig struct {
@@ -52,6 +55,8 @@ func Load() (*Config, error) {
 			Jwt: os.Getenv("JWT_SECRET"),
 			LogLevel: optional("LOG_LEVEL", "0.9"),
 			Port: optional("APP_PORT", "8080"),
+			AccessTokenTTL: getEnvDuration("ACCESS_TOKEN_TTL", "15m"),
+			RefreshTokenTTL: getEnvDuration("REFRESH_TOKEN_TTL", "7d"),
 		},
 		DB: DBConfig{
 			Host: optional("DB_HOST", "localhost"),
@@ -62,7 +67,7 @@ func Load() (*Config, error) {
 			SSL: optional("SSL", "disable"),
 			MaxIdleConns: getEnvInt("MAX_IDLE_CONNS", 10),
 			MaxOpenConns: getEnvInt("MAX_OPEN_CONNS", 20),
-			ConnMaxLifeTime: getEnvDuration("CONN_MAX_LIFE_TIME", 30 * time.Minute),
+			ConnMaxLifeTime: getEnvDuration("CONN_MAX_LIFE_TIME", "30m"),
 		},
 	}
 
