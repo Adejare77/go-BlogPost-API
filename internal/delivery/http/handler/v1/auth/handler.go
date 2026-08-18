@@ -3,12 +3,14 @@ package auth
 import (
 	"net/http"
 
+	"github.com/Adejare77/go-BlogPost-API/internal/config"
 	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
 	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
 	authService *usecase.AuthService
+	cfg *config.AppConfig
 }
 
 func (h *AuthHandler) Login(ctx *gin.Context) {
@@ -40,12 +42,26 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 	ctx.SetCookie(
 		"refresh_token",
 		auth.RefreshToken,
-		15*60,
+		int(h.cfg.RefreshTokenTTL.Seconds()),
 		"/",
 		"lax",
 		false,
 		true,
 	)
 
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name: "refresh_token",
+		Value: auth.RefreshToken,
+		Path: "/",
+		MaxAge: int(h.cfg.RefreshTokenTTL.Seconds()),
+		Secure: false,
+		SameSite: http.SameSiteLaxMode,
+		HttpOnly: true,
+	})
+
 	ctx.JSON(http.StatusOK, response)
+}
+
+func (h *AuthHandler) Logout(ctx *gin.Context) {
+	// logout user
 }
