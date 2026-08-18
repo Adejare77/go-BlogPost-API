@@ -9,6 +9,12 @@ type LikeService struct {
 	repo like.LikeRepository
 }
 
+func NewLikeService(repo like.LikeRepository) *LikeService {
+	return &LikeService{
+		repo: repo,
+	}
+}
+
 func (s *LikeService) Create(like *entity.Like) error {
 	return s.repo.Create(like)
 }
