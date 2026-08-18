@@ -49,16 +49,13 @@ func getEnvInt(key string, fallback int) int {
 	return intValue
 }
 
-func getEnvDuration(key string, fallback time.Duration) time.Duration {
+func getEnvDuration(key string, fallback string) time.Duration {
 	value := strings.TrimSpace(os.Getenv(key))
-	if value == "" {
-		return fallback
-	}
 
-	timeValue, err := time.ParseDuration(key)
+	timeValue, err := time.ParseDuration(value)
 	if err != nil {
-		log.Printf("invalid value for %s: %q; using default %d", key, value, fallback)
-		return fallback
+		log.Printf("invalid value for %s: %q; using default %q", key, value, fallback)
+		timeValue, _ = time.ParseDuration(fallback)
 	}
 
 	return timeValue
