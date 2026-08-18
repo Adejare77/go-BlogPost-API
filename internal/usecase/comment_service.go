@@ -9,6 +9,12 @@ type CommentService struct {
 	repo comment.CommentRepository
 }
 
+func NewCommentService(repo comment.CommentRepository) *CommentService {
+	return &CommentService{
+		repo: repo,
+	}
+}
+
 func (s *CommentService) Create(comment *entity.Comment) error {
 	return s.repo.Create(comment)
 }
