@@ -9,6 +9,12 @@ type PostService struct {
 	repo post.PostRepository
 }
 
+func NewPostService(repo post.PostRepository) *PostService {
+	return &PostService{
+		repo: repo,
+	}
+}
+
 func (s *PostService) Create(post *entity.Post) error {
 	return s.repo.Create(post)
 }
