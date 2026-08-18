@@ -13,6 +13,13 @@ type AuthService struct {
 	token auth.TokenService
 }
 
+func NewAuthService(repo user.UserRepository, token auth.TokenService) *AuthService {
+	return &AuthService{
+		repo: repo,
+		token: token,
+	}
+}
+
 func (s *AuthService) Login(email, password string) (*auth.AuthResult, error) {
 	user, err := s.repo.FindByEmail(email)
 	if err != nil {
