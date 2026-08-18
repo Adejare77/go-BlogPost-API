@@ -60,3 +60,14 @@ func (repo *UserRepository) Update(user *entity.User) (*user.UserDetail, error) 
 
 	return repo.FindByID(user.ID)
 }
+
+func (repo *UserRepository) FindByEmail(email string) (*entity.User, error) {
+	var user entity.User
+
+	if err := repo.db.
+	Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
