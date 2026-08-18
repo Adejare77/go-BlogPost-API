@@ -13,7 +13,13 @@ type UserService struct {
 }
 
 
-func (s *UserService) FindAll() ([]entity.User, error) {
+func NewUserService(repo user.UserRepository) *UserService {
+	return &UserService{
+		repo: repo,
+	}
+}
+
+func (s *UserService) FindAll() ([]user.UserDetail, error) {
 	return s.repo.FindAll()
 }
 
@@ -31,7 +37,7 @@ func (s *UserService) Create(user *entity.User) error {
 	return s.repo.Create(user)
 }
 
-func (s *UserService) FindByID(userID entity.UserID) (*entity.User, error) {
+func (s *UserService) FindByID(userID entity.UserID) (*user.UserDetail, error) {
 	return s.repo.FindByID(userID)
 }
 
@@ -40,7 +46,7 @@ func (s *UserService) DeleteByID(userID entity.UserID) error {
 	return s.repo.DeleteByID(userID)
 }
 
-func (s *UserService) Update(user *entity.User) (*entity.User, error) {
+func (s *UserService) Update(user *entity.User) (*user.UserDetail, error) {
 	// log updated user
 	if user.Password != nil {
 		hash, err := bcrypt.GenerateFromPassword([]byte(*user.Password), bcrypt.DefaultCost)
