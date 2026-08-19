@@ -37,7 +37,7 @@ func (s *AuthService) Login(email, password string) (*auth.AuthResult, error) {
 		return nil, err
 	}
 
-	refreshToken, err := s.token.GenerateRefreshToken(user.ID)
+	refreshToken, err := s.token.GenerateRefreshToken()
 	if err != nil {
 		return nil, err
 	}
