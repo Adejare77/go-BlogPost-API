@@ -8,6 +8,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var Current Config
+
 type Config struct {
 	App AppConfig
 	DB DBConfig
@@ -15,7 +17,9 @@ type Config struct {
 
 type AppConfig struct {
 	Env string
-	Jwt string
+	JWT string
+	JWTIssuer string
+
 	LogLevel string
 	Port string
 
@@ -52,7 +56,8 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		App: AppConfig{
 			Env: optional("APP_ENV", "development"),
-			Jwt: os.Getenv("JWT_SECRET"),
+			JWT: os.Getenv("JWT_SECRET"),
+			JWTIssuer: optional("JWT_ISSUER", "Rashisky"),
 			LogLevel: optional("LOG_LEVEL", "0.9"),
 			Port: optional("APP_PORT", "8080"),
 			AccessTokenTTL: getEnvDuration("ACCESS_TOKEN_TTL", "15m"),
