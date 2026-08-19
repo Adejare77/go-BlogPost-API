@@ -4,5 +4,5 @@ import "github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 
 type TokenService interface {
 	GenerateAccessToken(userID entity.UserID) (string, error)
-	GenerateRefreshToken(userID entity.UserID) (string, error)
+	GenerateRefreshToken() (string, error)
 }
