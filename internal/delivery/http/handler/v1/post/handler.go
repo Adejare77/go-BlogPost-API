@@ -9,8 +9,15 @@ import (
 	"github.com/google/uuid"
 )
 
+
 type PostHandler struct {
 	postService *usecase.PostService
+}
+
+func NewPostHandler(postService *usecase.PostService) *PostHandler {
+	return &PostHandler{
+		postService: postService,
+	}
 }
 
 func (h *PostHandler) Create(ctx *gin.Context) {
