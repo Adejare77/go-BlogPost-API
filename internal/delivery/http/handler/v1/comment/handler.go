@@ -14,6 +14,12 @@ type CommentHandler struct {
 	commentService *usecase.CommentService
 }
 
+func NewCommentHandler(commentService *usecase.CommentService) *CommentHandler {
+	return &CommentHandler{
+		commentService: commentService,
+	}
+}
+
 func (h *CommentHandler) CreateComment(ctx *gin.Context) {
 	var req CommentRequest
 	userID := ctx.MustGet("userID").(entity.UserID)
