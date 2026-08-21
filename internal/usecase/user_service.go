@@ -23,20 +23,6 @@ func (s *UserService) FindAll() ([]user.UserDetail, error) {
 	return s.repo.FindAll()
 }
 
-func (s *UserService) Create(user *entity.User) error {
-	if user.Password != nil {
-		hash, err := bcrypt.GenerateFromPassword([]byte(*user.Password), bcrypt.DefaultCost)
-		if err != nil {
-			return fmt.Errorf("hash password: %w", err)
-		}
-		password := string(hash)
-		user.Password = &password
-	}
-
-	// log user created
-	return s.repo.Create(user)
-}
-
 func (s *UserService) FindByID(userID entity.UserID) (*user.UserDetail, error) {
 	return s.repo.FindByID(userID)
 }
