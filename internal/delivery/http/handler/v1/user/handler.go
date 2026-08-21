@@ -9,40 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
 type UserHandler struct {
 	userService *usecase.UserService
-}
-
-func (h *UserHandler) Create(ctx *gin.Context) {
-	var req UserCreateRequest
-
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		// log the error
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	user := entity.User{
-		FullName: req.FullName,
-		Email: req.Email,
-		Password: &req.Password,
-	}
-
-	if err := h.userService.Create(&user); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, UserResponse{
-		ID: user.ID,
-		FullName: user.FullName,
-		Email: user.Email,
-		CreatedAt: user.CreatedAt,
-	})
 }
 
 func (h *UserHandler) FindAll(ctx *gin.Context) {
@@ -149,30 +118,6 @@ func (h *UserHandler) Update(ctx *gin.Context) {
 		FullName: result.FullName,
 		Email: result.Email,
 		CreatedAt: result.CreatedAt,
-	}
-
-	ctx.JSON(http.StatusOK, response)
-}
-
-
-func (h *UserHandler) Me(ctx *gin.Context) {
-	userID := ctx.MustGet("userID").(entity.UserID)
-
-	user, err := h.userService.FindByID(userID)
-
-	if err != nil {
-		// work on error
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Internal Server Error. Try again later",
-		})
-		return
-	}
-
-	response := UserResponse{
-		ID: user.ID,
-		FullName: user.FullName,
-		Email: user.Email,
-		CreatedAt: user.CreatedAt,
 	}
 
 	ctx.JSON(http.StatusOK, response)
