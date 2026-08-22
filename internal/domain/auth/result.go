@@ -6,5 +6,4 @@ type AuthResult struct {
 	AccessToken string
 	RefreshToken string
 	UserID entity.UserID
-	Email string
 }
