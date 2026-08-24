@@ -3,6 +3,8 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Adejare77/go-BlogPost-API/internal/config"
@@ -16,7 +18,7 @@ type JWTTokenService struct {
 }
 
 func NewJWTTokenService(secret string) *JWTTokenService {
-	return &JWTTokenService{
+	return &JWTTokenService {
 		secret: secret,
 	}
 }
@@ -50,4 +52,44 @@ func (*JWTTokenService) GenerateRefreshToken() (string, error) {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+func (j *JWTTokenService) Validate(tokenString string) (*Claims, error) {
+	if tokenString == "" {
+		return nil, fmt.Errorf("empty token")
+	}
+
+	const prefix = "Bearer "
+
+	if !strings.HasPrefix(tokenString, prefix) {
+		return nil, fmt.Errorf("invalid authorization scheme")
+	}
+
+	tokenString = strings.TrimSpace(strings.TrimPrefix(tokenString, prefix))
+
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&Claims{},
+		func(t *jwt.Token) (any, error) {
+			if t.Method != jwt.SigningMethodHS256 {
+				return nil, fmt.Errorf("unexpected signing method")
+			}
+			return []byte(j.secret), nil
+		},
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("invalid token: %w", err)
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	claims, ok := token.Claims.(*Claims)
+	if !ok {
+		return nil, fmt.Errorf("invalid claims")
+	}
+
+	return claims, nil
 }
