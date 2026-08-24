@@ -45,3 +45,7 @@ func (s *UserService) Update(user *entity.User) (*user.UserDetail, error) {
 
 	return s.repo.Update(user)
 }
+
+func (s *UserService) EnableByID(userID *entity.UserID) (*user.UserDetail, error){}
+
+func (s* UserService) DisableByID(userID *entity.UserID) error {}
