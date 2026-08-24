@@ -122,3 +122,7 @@ func (h *UserHandler) Update(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, response)
 }
+
+func (h *UserHandler) EnableByID(ctx *gin.Context) {}
+
+func (h *UserHandler) DisableByID(ctx *gin.Context) {}
