@@ -1,8 +1,6 @@
 package postgres
 
 import (
-	"fmt"
-
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/comment"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	"gorm.io/gorm"
@@ -19,7 +17,7 @@ func NewCommentRepository(db *gorm.DB) *CommentRepository {
 }
 
 func (repo *CommentRepository) Create(comment *entity.Comment) error {
-	return repo.db.Create(comment).Error
+	return MapError(repo.db.Create(comment).Error)
 }
 
 func (repo *CommentRepository) FindByID(commentID entity.CommentID, userID entity.UserID) (*comment.CommentDetail, error) {
@@ -58,7 +56,7 @@ func (repo *CommentRepository) FindByID(commentID entity.CommentID, userID entit
 	Joins("JOIN users ON users.id = comments.author_id").
 	Joins("JOIN posts ON posts.id = comments.post_id").
 	Scan(&commentDetail).Error; err != nil {
-		return nil, fmt.Errorf("error fetching comment with ID %s: %w", commentID, err)
+		return nil, MapError(err)
 	}
 
 
@@ -100,7 +98,7 @@ func (repo *CommentRepository) FindByID(commentID entity.CommentID, userID entit
 	Order("likes DESC created_at DESC").
 	Limit(3).
 	Scan(&topRepliesRow).Error; err != nil {
-		return nil, fmt.Errorf("error fetching comment with id %s replies: %w", commentID, err)
+		return nil, MapError(err)
 	}
 
 	topReplies := make([]comment.ReplySummary, len(topRepliesRow))
@@ -120,7 +118,7 @@ func (repo *CommentRepository) Update(comment *entity.Comment) (*comment.Comment
 	Updates(comment)
 
 	if result.Error != nil {
-		return nil, fmt.Errorf("Unable to update comment with ID %s: %w", comment.ID, result.Error)
+		return nil, MapError(result.Error)
 	}
 
 	if result.RowsAffected == 0 {
@@ -136,11 +134,11 @@ func (repo *CommentRepository) DeleteByID(commentID entity.CommentID, userID ent
 	Delete(&entity.Comment{})
 
 	if result.Error != nil {
-		return fmt.Errorf("error deleting comment with ID %s: %w", commentID, result.Error)
+		return MapError(result.Error)
 	}
 
 	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return MapError(result.Error)
 	}
 
 	return nil
@@ -149,7 +147,7 @@ func (repo *CommentRepository) DeleteByID(commentID entity.CommentID, userID ent
 func (repo *CommentRepository) FindByPostID(postID entity.PostID, userID entity.UserID) ([]comment.CommentList, error) {
 	var list []CommentListRow
 
-	repo.db.Model(&entity.Comment{}).
+	err := repo.db.Model(&entity.Comment{}).
 	Select(`
 		comments.id AS id,
 		comments.author_id AS author_id,
@@ -182,7 +180,11 @@ func (repo *CommentRepository) FindByPostID(postID entity.PostID, userID entity.
 	`, userID).
 	Joins("JOIN users ON users.id = comments.author_id").
 	Where("post_id = ? AND parent_id IS NULL", postID).
-	Scan(&list)
+	Scan(&list).Error
+
+	if err != nil {
+		return nil, MapError(err)
+	}
 
 	comments := make([]comment.CommentList, len(list))
 
