@@ -1,8 +1,6 @@
 package postgres
 
 import (
-	"fmt"
-
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/user"
 	"gorm.io/gorm"
@@ -19,14 +17,14 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 }
 
 func (repo *UserRepository) Create(user *entity.User) error {
-	return repo.db.Create(user).Error
+	return MapError(repo.db.Create(user).Error)
 }
 
 func (repo *UserRepository) FindByID(userID entity.UserID) (*user.UserDetail, error) {
 	var user user.UserDetail
 
 	if err := repo.db.First(&user, userID).Error; err != nil {
-		return nil, fmt.Errorf("error finding user with ID %d: %w", userID, err)
+		return nil, MapError(err)
 	}
 
 	return &user, nil
@@ -35,13 +33,11 @@ func (repo *UserRepository) FindByID(userID entity.UserID) (*user.UserDetail, er
 func (repo *UserRepository) FindAll() ([]user.UserDetail, error) {
 	var users []user.UserDetail
 
-	err := repo.db.Find(&users).Error
-
-	return users, err
+	return users, MapError(repo.db.Find(&users).Error)
 }
 
 func (repo *UserRepository) DeleteByID(userID entity.UserID) error {
-	return repo.db.Delete(&entity.User{}, userID).Error
+	return MapError(repo.db.Delete(&entity.User{}, userID).Error)
 }
 
 func (repo *UserRepository) Update(user *entity.User) (*user.UserDetail, error) {
@@ -51,11 +47,11 @@ func (repo *UserRepository) Update(user *entity.User) (*user.UserDetail, error) 
 	Updates(user)
 
 	if result.Error != nil {
-		return nil, fmt.Errorf("error updating user with ID %d: %w", user.ID, result.Error)
+		return nil, MapError(result.Error)
 	}
 
 	if result.RowsAffected == 0 {
-		return nil, gorm.ErrRecordNotFound
+		return nil, MapError(result.Error)
 	}
 
 	return repo.FindByID(user.ID)
@@ -66,20 +62,20 @@ func (repo *UserRepository) FindByEmail(email string) (*entity.User, error) {
 
 	if err := repo.db.
 	Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, err
+		return nil, MapError(err)
 	}
 
 	return &user, nil
 }
 
 func (repo *UserRepository) EnableByID(userID entity.UserID) (error) {
-	return repo.db.Model(&entity.User{}).
+	return MapError(repo.db.Model(&entity.User{}).
 	Where("id = ?", userID).
-	Update("is_active", true).Error
+	Update("is_active", true).Error)
 }
 
 func (repo *UserRepository) DisableByID(userID entity.UserID) error {
-	return repo.db.Model(&entity.User{}).
+	return MapError(repo.db.Model(&entity.User{}).
 	Where("id = ?", userID).
-	Update("is_active", false).Error
+	Update("is_active", false).Error)
 }
