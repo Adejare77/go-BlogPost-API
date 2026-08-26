@@ -10,5 +10,7 @@ type UserRepository interface {
 	FindAll() ([]UserDetail, error)
 	DeleteByID(userID entity.UserID) error
 	Update(user *entity.User) (*UserDetail, error)
+	EnableByID(user entity.UserID) error
+	DisableByID(user entity.UserID) error
 	FindByEmail(email string) (*entity.User, error)
 }
