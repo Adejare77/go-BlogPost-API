@@ -7,7 +7,7 @@ import (
 type RefreshTokenID int
 
 type RefreshToken struct {
-	ID RefreshTokenID  `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ID RefreshTokenID  `gorm:"primaryKey"`
 	UserID UserID `gorm:"type:uuid"`
 	TokenHash string `gorm:"not null;index"`
 	RevokedAt *time.Time
