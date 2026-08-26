@@ -11,14 +11,19 @@ import (
 
 type AuthService struct {
 	userRepo user.UserRepository
-	refreshTokenRepo auth.RefreshTokenRepository
 	tokenService auth.TokenService
+	refreshTokenRepo auth.RefreshTokenRepository
 }
 
-func NewAuthService(userRepo user.UserRepository, tokenService auth.TokenService) *AuthService {
+func NewAuthService(
+	userRepo user.UserRepository,
+	tokenService auth.TokenService,
+	refreshTokenRepo auth.RefreshTokenRepository,
+	) *AuthService {
 	return &AuthService{
 		userRepo: userRepo,
 		tokenService: tokenService,
+		refreshTokenRepo: refreshTokenRepo,
 	}
 }
 
@@ -60,7 +65,25 @@ func (s *AuthService) Login(email, password string) (*auth.AuthResult, error) {
 	}, nil
 }
 
-func (s *AuthService) Logout(userID entity.UserID) error {}
+func (s *AuthService) Logout(refreshToken string) error {
+	tokenHash, err := hashCredential(refreshToken, bcrypt.MinCost)
+	if err != nil {
+		return fmt.Errorf("error hashing refresh token: %w", err)
+	}
+
+	// retrieve from DB
+	retrieveToken, err := s.refreshTokenRepo.FindByTokenHash(tokenHash)
+	if err != nil {
+		return fmt.Errorf("invalid token: %w", err)
+	}
+
+	// revoke token
+	if err := s.refreshTokenRepo.RevokeToken(retrieveToken.TokenHash); err != nil {
+		return fmt.Errorf("error revoking token: %w", err)
+	}
+
+	return nil
+}
 
 func (s *AuthService) Register(user *entity.User) error {
 	if user.Password != nil {
