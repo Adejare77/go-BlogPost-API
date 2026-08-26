@@ -152,28 +152,28 @@ func (repo *PostRepository) DeleteByID(postID entity.PostID, userID entity.UserI
 func (repo *PostRepository) FindAll(userID entity.UserID) ([]post.PostList, error) {
 	var list []PostListRow
 
-	if err := repo.db.Model(&entity.Post{}).
+	if err := repo.db.Table("posts").
 	Select(`
 		posts.id AS id,
 		users.id AS author_id,
 		users.full_name AS full_name,
 		posts.title AS title,
-		post.content AS content
+		posts.content AS content,
 		posts.is_published,
-		posts.created_at AS created_at
+		posts.created_at AS created_at,
 		(
 			SELECT COUNT(*)
 			FROM likes
 			WHERE likes.likeable_id = posts.id
 			AND likes.likeable_type = 'post'
-		) AS likes
+		) AS likes,
 
 		(
 			SELECT COUNT(*)
 			FROM comments
 			WHERE comments.post_id = posts.id
 			AND comments.parent_id IS NULL
-		) AS comment_count
+		) AS comment_count,
 
 		EXISTS (
 			SELECT 1
@@ -184,7 +184,7 @@ func (repo *PostRepository) FindAll(userID entity.UserID) ([]post.PostList, erro
 		) AS liked
 	`, userID).
 	Joins("JOIN users ON users.id = posts.author_id").
-	Order("created_at DESC, likes DESC").
+	Order("posts.created_at DESC, likes DESC").
 	Scan(&list).Error; err != nil {
 		return nil, err
 	}
