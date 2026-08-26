@@ -16,8 +16,8 @@ func Setup(
 	userHandler *user.UserHandler,
 	postHandler *post.PostHandler,
 	commentHandler *comment.CommentHandler,
-	authHandler *httpauth.AuthHandler,
 	likeHandler *like.LikeHandler,
+	authHandler *httpauth.AuthHandler,
 	tokenService domainauth.TokenService,
 	) {
 		api := r.Group("/api")
