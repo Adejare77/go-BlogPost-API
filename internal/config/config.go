@@ -61,7 +61,7 @@ func Load() (*Config, error) {
 			LogLevel: optional("LOG_LEVEL", "0.9"),
 			Port: optional("APP_PORT", "8080"),
 			AccessTokenTTL: getEnvDuration("ACCESS_TOKEN_TTL", "15m"),
-			RefreshTokenTTL: getEnvDuration("REFRESH_TOKEN_TTL", "7d"),
+			RefreshTokenTTL: getEnvDuration("REFRESH_TOKEN_TTL", "168h"),
 		},
 		DB: DBConfig{
 			Host: optional("DB_HOST", "localhost"),
