@@ -3,6 +3,7 @@ package postgres
 import (
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/comment"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
+	domainErrors "github.com/Adejare77/go-BlogPost-API/internal/domain/errors"
 	"gorm.io/gorm"
 )
 
@@ -122,7 +123,7 @@ func (repo *CommentRepository) Update(comment *entity.Comment) (*comment.Comment
 	}
 
 	if result.RowsAffected == 0 {
-		return nil, gorm.ErrRecordNotFound
+		return nil, domainErrors.ErrNotFound
 	}
 
 	return repo.FindByID(comment.ID, comment.AuthorID)
@@ -138,7 +139,7 @@ func (repo *CommentRepository) DeleteByID(commentID entity.CommentID, userID ent
 	}
 
 	if result.RowsAffected == 0 {
-		return MapError(result.Error)
+		return domainErrors.ErrNotFound
 	}
 
 	return nil
