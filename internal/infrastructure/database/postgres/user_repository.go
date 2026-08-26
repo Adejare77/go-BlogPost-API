@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
+	domainErrors "github.com/Adejare77/go-BlogPost-API/internal/domain/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/user"
 	"gorm.io/gorm"
 )
@@ -51,7 +52,7 @@ func (repo *UserRepository) Update(user *entity.User) (*user.UserDetail, error) 
 	}
 
 	if result.RowsAffected == 0 {
-		return nil, MapError(result.Error)
+		return nil, domainErrors.ErrNotFound
 	}
 
 	return repo.FindByID(user.ID)
