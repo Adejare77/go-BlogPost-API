@@ -1,8 +1,6 @@
 package postgres
 
 import (
-	"fmt"
-
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/comment"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/post"
@@ -20,7 +18,7 @@ func NewPostRepository(db *gorm.DB) *PostRepository {
 }
 
 func (repo *PostRepository) Create(post *entity.Post) error {
-	return repo.db.Create(post).Error
+	return MapError(repo.db.Create(post).Error)
 }
 
 func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID) (*post.PostDetail, error) {
@@ -63,7 +61,7 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 	Scan(&detail).Error
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch post with id %s: %w", postID, err)
+		return nil, MapError(err)
 	}
 
 	var commentlist []CommentListRow
@@ -104,7 +102,7 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 	Scan(&commentlist).Error
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch comments for post with id %s: %w", postID, err)
+		return nil, MapError(err)
 	}
 
 	comments := make([]comment.CommentList, len(commentlist))
@@ -123,11 +121,11 @@ func (repo *PostRepository) Update(post *entity.Post) (*post.PostDetail, error) 
 	Where("id = ? AND author_id = ?", post.ID, post.AuthorID).Updates(post)
 
 	if result.Error != nil {
-		return nil, fmt.Errorf("Error updating post with ID %s: %w", post.ID, result.Error)
+		return nil, MapError(result.Error)
 	}
 
 	if result.RowsAffected == 0 {
-		return nil, gorm.ErrRecordNotFound
+		return nil, MapError(result.Error)
 	}
 
 	return repo.FindByID(post.ID, post.AuthorID)
@@ -139,11 +137,11 @@ func (repo *PostRepository) DeleteByID(postID entity.PostID, userID entity.UserI
 	Delete(&entity.Post{})
 
 	if result.Error != nil {
-		return result.Error
+		return MapError(result.Error)
 	}
 
 	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return MapError(result.Error)
 	}
 
 	return nil
@@ -186,7 +184,7 @@ func (repo *PostRepository) FindAll(userID entity.UserID) ([]post.PostList, erro
 	Joins("JOIN users ON users.id = posts.author_id").
 	Order("posts.created_at DESC, likes DESC").
 	Scan(&list).Error; err != nil {
-		return nil, err
+		return nil, MapError(err)
 	}
 
 	posts := make([]post.PostList, len(list))
