@@ -11,4 +11,6 @@ type UserDetail struct {
 	Email string
 	FullName string
 	CreatedAt time.Time
+	IsActive bool
+	IsStaff bool
 }
