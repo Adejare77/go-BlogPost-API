@@ -3,6 +3,7 @@ package postgres
 import (
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/comment"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
+	domainErrors "github.com/Adejare77/go-BlogPost-API/internal/domain/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/post"
 	"gorm.io/gorm"
 )
@@ -125,7 +126,7 @@ func (repo *PostRepository) Update(post *entity.Post) (*post.PostDetail, error) 
 	}
 
 	if result.RowsAffected == 0 {
-		return nil, MapError(result.Error)
+		return nil, domainErrors.ErrNotFound
 	}
 
 	return repo.FindByID(post.ID, post.AuthorID)
@@ -141,7 +142,7 @@ func (repo *PostRepository) DeleteByID(postID entity.PostID, userID entity.UserI
 	}
 
 	if result.RowsAffected == 0 {
-		return MapError(result.Error)
+		return domainErrors.ErrNotFound
 	}
 
 	return nil
