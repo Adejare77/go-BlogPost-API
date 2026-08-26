@@ -71,3 +71,15 @@ func (repo *UserRepository) FindByEmail(email string) (*entity.User, error) {
 
 	return &user, nil
 }
+
+func (repo *UserRepository) EnableByID(userID entity.UserID) (error) {
+	return repo.db.Model(&entity.User{}).
+	Where("id = ?", userID).
+	Update("is_active", true).Error
+}
+
+func (repo *UserRepository) DisableByID(userID entity.UserID) error {
+	return repo.db.Model(&entity.User{}).
+	Where("id = ?", userID).
+	Update("is_active", false).Error
+}
