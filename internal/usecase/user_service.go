@@ -28,12 +28,10 @@ func (s *UserService) FindByID(userID entity.UserID) (*user.UserDetail, error) {
 }
 
 func (s *UserService) DeleteByID(userID entity.UserID) error {
-	// log user deletion
 	return s.repo.DeleteByID(userID)
 }
 
 func (s *UserService) Update(user *entity.User) (*user.UserDetail, error) {
-	// log updated user
 	if user.Password != nil {
 		hash, err := bcrypt.GenerateFromPassword([]byte(*user.Password), bcrypt.DefaultCost)
 		if err != nil {
@@ -46,6 +44,10 @@ func (s *UserService) Update(user *entity.User) (*user.UserDetail, error) {
 	return s.repo.Update(user)
 }
 
-func (s *UserService) EnableByID(userID *entity.UserID) (*user.UserDetail, error){}
+func (s *UserService) EnableByID(userID entity.UserID) error {
+	return s.repo.EnableByID(userID)
+}
 
-func (s* UserService) DisableByID(userID *entity.UserID) error {}
+func (s* UserService) DisableByID(userID entity.UserID) error {
+	return s.repo.DisableByID(userID)
+}
