@@ -7,4 +7,6 @@ var (
 	ErrAlreadyExists = errors.New("already exists")
 	ErrTokenRevoked = errors.New("token already revoked")
 	ErrInvalidToken = errors.New("invalid or expired token")
+	ErrInvalidCredentials = errors.New("invalid credentials")
+	ErrAccountDisabled = errors.New("account disabled")
 )
