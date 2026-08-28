@@ -1,42 +1,57 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/Adejare77/go-BlogPost-API/internal/config"
+	httperrors "github.com/Adejare77/go-BlogPost-API/internal/delivery/http/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type AuthHandler struct {
 	authService *usecase.AuthService
 }
 
+func NewAuthHandler(authservice *usecase.AuthService) *AuthHandler {
+	return &AuthHandler{
+		authService: authservice,
+	}
+}
+
 func (h *AuthHandler) Login(ctx *gin.Context) {
 	var req AuthRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		// Take care of errors
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"invalid_request",
+			"invalid request",
+			err,
+		)
 		return
 	}
 
 	auth, err := h.authService.Login(req.Email, req.Password)
 	if err != nil {
-		// Take care of errors
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
 	response := AuthTokenResponse{
 		AccessToken: auth.AccessToken,
 		UserID: auth.UserID,
-		Email: auth.Email,
 	}
 
 	http.SetCookie(ctx.Writer, &http.Cookie{
@@ -53,13 +68,21 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 }
 
 func (h *AuthHandler) Logout(ctx *gin.Context) {
-	userID := ctx.MustGet("userID").(entity.UserID)
+	refreshToken, err := ctx.Cookie("refresh_token")
+	if err != nil {
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusUnauthorized,
+			"unauthorized",
+			"unauthorized",
+			err,
+		)
+		return
+	}
 
-	if err := h.authService.Logout(userID); err != nil {
-		// Take care of error
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+	if err := h.authService.Logout(refreshToken); err != nil {
+		httperrors.HandleError(ctx, err)
+		return
 	}
 
 	http.SetCookie(ctx.Writer, &http.Cookie{
@@ -77,10 +100,20 @@ func (h *AuthHandler) Create(ctx *gin.Context) {
 	var req AuthRegister
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		// log the error
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"invalid_request",
+			"invalid request",
+			err,
+		)
 		return
 	}
 
@@ -91,9 +124,7 @@ func (h *AuthHandler) Create(ctx *gin.Context) {
 	}
 
 	if err := h.authService.Register(&user); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -111,10 +142,7 @@ func (h *AuthHandler) Me(ctx *gin.Context) {
 	user, err := h.authService.FindByID(userID)
 
 	if err != nil {
-		// work on error
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Internal Server Error. Try again later",
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
