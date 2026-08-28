@@ -14,6 +14,7 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": "unauthorized",
 			})
+			return
 		}
 
 		claimsAny, err := tokenService.Validate(token)
@@ -21,6 +22,7 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"error": err,
 			})
+			return
 		}
 		claims := claimsAny.(*Claims)
 
