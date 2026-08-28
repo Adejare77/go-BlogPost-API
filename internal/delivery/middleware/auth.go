@@ -11,16 +11,23 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ctx.GetHeader("Authorization")
 		if token == "" {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "unauthorized",
-			})
+			ctx.AbortWithStatusJSON(
+				http.StatusBadRequest,
+				gin.H{
+					"code": "unauthorized",
+					"message": "unauthorized",
+				},
+			)
 			return
 		}
 
 		claimsAny, err := tokenService.Validate(token)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": err,
+			ctx.AbortWithStatusJSON(
+				http.StatusUnauthorized,
+				gin.H{
+				"code": "uanuthorized",
+				"message": "unauthorized",
 			})
 			return
 		}
