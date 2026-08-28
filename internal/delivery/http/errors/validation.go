@@ -40,7 +40,7 @@ func Validator(ctx *gin.Context, req any, err validator.ValidationErrors) {
 		fields[key] = value
 	}
 
-	response := ErrorResponse{
+	response := errorResponse{
 		Code: "validation_error",
 		Message: "request validation failed",
 		Fields: fields,
