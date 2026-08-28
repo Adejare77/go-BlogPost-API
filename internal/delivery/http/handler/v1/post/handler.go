@@ -1,11 +1,14 @@
 package post
 
 import (
+	"errors"
 	"net/http"
 
+	httperrors "github.com/Adejare77/go-BlogPost-API/internal/delivery/http/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
@@ -24,10 +27,20 @@ func (h *PostHandler) Create(ctx *gin.Context) {
 	var req PostCreateRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		// work on error
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid Request",
-		})
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"invalid_request",
+			"invalid request",
+			err,
+		)
 		return
 	}
 
@@ -41,10 +54,7 @@ func (h *PostHandler) Create(ctx *gin.Context) {
 	}
 
 	if err := h.postService.Create(&post); err != nil {
-		// work on error
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Internal Server error. Try again later",
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -66,15 +76,19 @@ func (h *PostHandler) Create(ctx *gin.Context) {
 }
 
 func (h *PostHandler) FindByID(ctx *gin.Context) {
-	postIdStr := ctx.Param("post_id")
-	postId, err := uuid.Parse(postIdStr)
+	id, err := uuid.Parse(ctx.Param("post_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"post_id",
+			"must be a valid UUID",
+			err,
+		)
 		return
 	}
-	postID := entity.PostID(postId)
+
+	postID := entity.PostID(id)
 
 	var userID entity.UserID
 
@@ -86,9 +100,7 @@ func (h *PostHandler) FindByID(ctx *gin.Context) {
 	post, err := h.postService.FindByID(postID, userID)
 
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -131,23 +143,35 @@ func (h *PostHandler) FindByID(ctx *gin.Context) {
 
 
 func (h *PostHandler) Update(ctx *gin.Context) {
-	// confirm it's the owner
 	var req PostUpdateRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		// work on error
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"invalid_request",
+			"invalid request",
+			err,
+		)
 		return
 	}
 
-	idStr := ctx.Param("post_id")
-	id, err := uuid.Parse(idStr)
+	id, err := uuid.Parse(ctx.Param("post_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"post_id",
+			"must be a valid UUID",
+			err,
+		)
 		return
 	}
 
@@ -164,9 +188,7 @@ func (h *PostHandler) Update(ctx *gin.Context) {
 
 	updatedPost, err := h.postService.Update(&post)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -208,14 +230,15 @@ func (h *PostHandler) Update(ctx *gin.Context) {
 }
 
 func (h *PostHandler) DeleteByID(ctx *gin.Context) {
-	// confirm it's the owner
-	idStr := ctx.Param("post_id")
-	id, err := uuid.Parse(idStr)
+	id, err := uuid.Parse(ctx.Param("post_id"))
 	if err != nil {
-		// work on error
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"invalid_request",
+			"invalid request",
+			err,
+		)
 		return
 	}
 
@@ -223,9 +246,7 @@ func (h *PostHandler) DeleteByID(ctx *gin.Context) {
 	userID := ctx.MustGet("userID").(entity.UserID)
 
 	if err = h.postService.DeleteByID(postID, userID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -243,9 +264,7 @@ func (h *PostHandler) FindAll(ctx *gin.Context) {
 
 	response, err := h.postService.FindAll(userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
