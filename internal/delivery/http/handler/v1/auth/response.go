@@ -9,7 +9,6 @@ import (
 type AuthTokenResponse struct {
 	AccessToken string `json:"access_token"`
 	UserID entity.UserID `json:"user_id"`
-	Email string `json:"email"`
 }
 
 type AuthResponse struct {
