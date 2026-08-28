@@ -34,7 +34,3 @@ func (s *PostService) DeleteByID(postID entity.PostID, userID entity.UserID) err
 func (s *PostService) FindAll(userID entity.UserID) ([]post.PostList, error) {
 	return s.repo.FindAll(userID)
 }
-
-// func (s *PostService) FindPostDetail(postID entity.PostID, userID entity.UserID) ([]*entity.PostDetail, error) {
-// 	return s.repo.FindPostDetail(postID, userID)
-// }
