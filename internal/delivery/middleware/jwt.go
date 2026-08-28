@@ -26,7 +26,6 @@ func NewJWTTokenService(secret string) *JWTTokenService {
 type Claims struct {
 	UserID entity.UserID
 	IsStaff bool
-	IsActive bool
 	jwt.RegisteredClaims
 }
 
