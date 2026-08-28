@@ -25,6 +25,8 @@ func NewJWTTokenService(secret string) *JWTTokenService {
 
 type Claims struct {
 	UserID entity.UserID
+	IsStaff bool
+	IsActive bool
 	jwt.RegisteredClaims
 }
 
@@ -54,7 +56,7 @@ func (*JWTTokenService) GenerateRefreshToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
-func (j *JWTTokenService) Validate(tokenString string) (*Claims, error) {
+func (j *JWTTokenService) Validate(tokenString string) (any, error) {
 	if tokenString == "" {
 		return nil, fmt.Errorf("empty token")
 	}
