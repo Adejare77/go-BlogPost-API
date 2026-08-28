@@ -1,11 +1,14 @@
 package comment
 
 import (
+	"errors"
 	"net/http"
 
+	httperrors "github.com/Adejare77/go-BlogPost-API/internal/delivery/http/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
@@ -25,20 +28,36 @@ func (h *CommentHandler) CreateComment(ctx *gin.Context) {
 	userID := ctx.MustGet("userID").(entity.UserID)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"invalid_request",
+			"invalid_request",
+			err,
+		)
 		return
 	}
 
 
 	id, err := uuid.Parse(ctx.Param("post_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"post_id",
+			"must be a valid UUID",
+			err,
+		)
 		return
 	}
+
 	postID := entity.PostID(id)
 
 	comment := entity.Comment{
@@ -48,9 +67,7 @@ func (h *CommentHandler) CreateComment(ctx *gin.Context) {
 	}
 
 	if err := h.commentService.Create(&comment); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -73,19 +90,35 @@ func (h *CommentHandler) CreateReply(ctx *gin.Context) {
 	userID := ctx.MustGet("userID").(entity.UserID)
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"invalid_request",
+			"invalid request",
+			err,
+		)
 		return
 	}
 
 	id, err := uuid.Parse(ctx.Param("comment_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"comment_id",
+			"must be a valid UUID",
+			err,
+		)
 		return
 	}
+
 	parentID := entity.CommentID(id)
 
 	comment := entity.Comment{
@@ -95,9 +128,7 @@ func (h *CommentHandler) CreateReply(ctx *gin.Context) {
 	}
 
 	if err := h.commentService.Create(&comment); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -119,11 +150,16 @@ func (h *CommentHandler) FindByID(ctx *gin.Context) {
 
 	id, err := uuid.Parse(ctx.Param("comment_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"comment_id",
+			"must be a valid UUID",
+			err,
+		)
 		return
 	}
+
 	commentID := entity.CommentID(id)
 
 	if v, ok := ctx.Get("userID"); ok {
@@ -132,9 +168,7 @@ func (h *CommentHandler) FindByID(ctx *gin.Context) {
 
 	comment, err := h.commentService.FindByID(commentID, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -177,20 +211,37 @@ func (h *CommentHandler) Update(ctx *gin.Context) {
 	var req CommentRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"invalid_request",
+			"invalid request",
+			err,
+		)
 		return
 	}
 
 	userID := ctx.MustGet("userID").(entity.UserID)
+
 	id, err := uuid.Parse(ctx.Param("comment_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"comment_id",
+			"must be a valid UUID",
+			err,
+		)
 		return
 	}
+
 	commentID := entity.CommentID(id)
 
 	comment := entity.Comment {
@@ -202,9 +253,7 @@ func (h *CommentHandler) Update(ctx *gin.Context) {
 	response, err := h.commentService.Update(&comment)
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -215,18 +264,21 @@ func (h *CommentHandler) Update(ctx *gin.Context) {
 func (h *CommentHandler) DeleteByID(ctx *gin.Context) {
 	id, err := uuid.Parse(ctx.Param("comment_id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"comment_id",
+			"must be a valid UUID",
+			err,
+		)
 		return
 	}
+
 	commentID := entity.CommentID(id)
 	userID := ctx.MustGet("userID").(entity.UserID)
 
 	if err := h.commentService.DeleteByID(commentID, userID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
