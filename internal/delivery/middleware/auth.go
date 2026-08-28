@@ -25,6 +25,7 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 		claims := claimsAny.(*Claims)
 
 		ctx.Set("userID", claims.UserID)
+		ctx.Set("isStaff", claims.IsStaff)
 
 		ctx.Next()
 	}
