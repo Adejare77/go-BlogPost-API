@@ -8,7 +8,7 @@ import (
 
 var authPublicRoute = func(r *gin.RouterGroup, h *AuthHandler) {
 	r.POST("/login", h.Login)
-	r.POST("/create", h.Create)
+	r.POST("/register", h.Create)
 	r.POST("/logout", h.Logout)
 }
 
