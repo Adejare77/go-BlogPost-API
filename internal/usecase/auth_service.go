@@ -5,6 +5,7 @@ import (
 
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/auth"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
+	domainErrors "github.com/Adejare77/go-BlogPost-API/internal/domain/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/user"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -39,23 +40,27 @@ func hashCredential(value string, cost int) (string, error) {
 func (s *AuthService) Login(email, password string) (*auth.AuthResult, error) {
 	user, err := s.userRepo.FindByEmail(email)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Credential")
+		return nil, domainErrors.ErrInvalidCredentials
+	}
+
+	if !user.IsActive {
+		return nil, domainErrors.ErrAccountDisabled
 	}
 
 	if err := bcrypt.CompareHashAndPassword(
 		[]byte(*user.Password),
 		[]byte(password)); err != nil {
-			return nil, fmt.Errorf("invalid Credential")
+			return nil, domainErrors.ErrInvalidCredentials
 		}
 
 	accessToken, err := s.tokenService.GenerateAccessToken(user.ID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error generating access token")
 	}
 
 	refreshToken, err := s.tokenService.GenerateRefreshToken()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error generating refresh token")
 	}
 
 	return &auth.AuthResult{
@@ -71,30 +76,23 @@ func (s *AuthService) Logout(refreshToken string) error {
 		return fmt.Errorf("error hashing refresh token: %w", err)
 	}
 
-	// retrieve from DB
 	retrieveToken, err := s.refreshTokenRepo.FindByTokenHash(tokenHash)
 	if err != nil {
-		return fmt.Errorf("invalid token: %w", err)
+		return err
 	}
 
-	// revoke token
-	if err := s.refreshTokenRepo.RevokeToken(retrieveToken.TokenHash); err != nil {
-		return fmt.Errorf("error revoking token: %w", err)
-	}
-
-	return nil
+	return s.refreshTokenRepo.RevokeToken(retrieveToken.TokenHash)
 }
 
 func (s *AuthService) Register(user *entity.User) error {
 	if user.Password != nil {
 		password, err := hashCredential(*user.Password, bcrypt.DefaultCost)
 		if err != nil {
-			return fmt.Errorf("hash password: %w", err)
+			return fmt.Errorf("error hashing password: %w", err)
 		}
 		user.Password = &password
 	}
 
-	// log user created
 	return s.userRepo.Create(user)
 }
 
@@ -110,11 +108,11 @@ func (s *AuthService) RefreshToken(token string) (auth.AuthResult, error) {
 
 	retrieveToken, err := s.refreshTokenRepo.FindByTokenHash(tokenHash)
 	if err != nil {
-		return auth.AuthResult{}, fmt.Errorf("invalid token: %w", err)
+		return auth.AuthResult{}, err
 	}
 
 	if err := s.refreshTokenRepo.RevokeToken(retrieveToken.TokenHash); err != nil {
-		return auth.AuthResult{}, fmt.Errorf("error revoking token: %w", err)
+		return auth.AuthResult{}, err
 	}
 
 	// generate new refresh tokne
@@ -126,7 +124,7 @@ func (s *AuthService) RefreshToken(token string) (auth.AuthResult, error) {
 	// hash the new token
 	newRefreshTokenHash, err := hashCredential(newRefreshToken, bcrypt.MinCost)
 	if err != nil {
-		return auth.AuthResult{}, fmt.Errorf("error hasing token: %w", err)
+		return auth.AuthResult{}, fmt.Errorf("error hashing token: %w", err)
 	}
 
 	refreshToken := entity.RefreshToken{
@@ -134,7 +132,7 @@ func (s *AuthService) RefreshToken(token string) (auth.AuthResult, error) {
 		TokenHash: newRefreshTokenHash,
 	}
 	if err := s.refreshTokenRepo.Create(&refreshToken); err != nil {
-		return auth.AuthResult{}, fmt.Errorf("error creating new token in DB: %w", err)
+		return auth.AuthResult{}, err
 	}
 
 	accessToken, err := s.tokenService.GenerateAccessToken(retrieveToken.UserID)
