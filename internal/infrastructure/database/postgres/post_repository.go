@@ -32,7 +32,7 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 		users.full_name AS full_name,
 		posts.title AS title,
 		posts.content AS content,
-		posts.is_published,
+		posts.is_published AS is_published,
 		posts.created_at,
 
 		(
