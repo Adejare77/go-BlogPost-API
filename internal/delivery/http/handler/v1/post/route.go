@@ -7,14 +7,14 @@ import (
 )
 
 var postProtectedRoute = func(r *gin.RouterGroup, h *PostHandler) {
-	r.POST("/posts", h.Create)
-	r.DELETE("/posts/:post_id", h.DeleteByID)
-	r.PATCH("/Posts/:post_id", h.Update)
+	r.POST("/", h.Create)
+	r.DELETE("/:post_id", h.DeleteByID)
+	r.PATCH("/:post_id", h.Update)
 }
 
 var postPublicRoute = func(r *gin.RouterGroup, h *PostHandler) {
-	r.GET("/posts", h.FindAll)
-	r.GET("/posts/:post_id", h.FindByID)
+	r.GET("/", h.FindAll)
+	r.GET("/:post_id", h.FindByID)
 }
 
 
