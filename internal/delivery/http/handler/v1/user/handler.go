@@ -1,12 +1,16 @@
 package user
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
+	httperrors "github.com/Adejare77/go-BlogPost-API/internal/delivery/http/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 
@@ -14,13 +18,29 @@ type UserHandler struct {
 	userService *usecase.UserService
 }
 
+func NewUserHandler(userSerivce *usecase.UserService) *UserHandler {
+	return &UserHandler{
+		userService: userSerivce,
+	}
+}
+
 func (h *UserHandler) FindAll(ctx *gin.Context) {
+	userID := ctx.MustGet("userID").(entity.UserID)
+	isStaff := ctx.MustGet("isStaff").(bool)
+	if !isStaff {
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusUnauthorized,
+			"unauthorized",
+			"unauthorized",
+			errors.New(fmt.Sprintf("%w tried to access all users", userID)),
+		)
+		return
+	}
+
 	users, err := h.userService.FindAll()
 	if err != nil {
-		// work on error
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Internal Server Error. Try again later",
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -46,9 +66,8 @@ func (h *UserHandler) FindByID(ctx *gin.Context) {
 	idStr := ctx.Param("user_id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		// work on error
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"error": "invalid id value",
 		})
 		return
 	}
@@ -78,10 +97,7 @@ func (h *UserHandler) DeleteByID(ctx *gin.Context) {
 	userID := ctx.MustGet("userID").(entity.UserID)
 
 	if err := h.userService.DeleteByID(userID); err != nil {
-		// work on error
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Internal server error. Try again later",
-		})
+		httperrors.HandleError(ctx, err)
 		return
 	}
 
@@ -92,9 +108,15 @@ func (h *UserHandler) Update(ctx *gin.Context) {
 	var req UserUpdateRequest
 
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		// work on error
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
 		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid inputs",
+			"error": "invalid request",
 		})
 		return
 	}
@@ -123,6 +145,23 @@ func (h *UserHandler) Update(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, response)
 }
 
-func (h *UserHandler) EnableByID(ctx *gin.Context) {}
+func (h *UserHandler) EnableByID(ctx *gin.Context) {
+	userID := ctx.MustGet("userID").(entity.UserID)
 
-func (h *UserHandler) DisableByID(ctx *gin.Context) {}
+	if err := h.userService.EnableByID(userID); err != nil {
+		httperrors.HandleError(ctx, err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+func (h *UserHandler) DisableByID(ctx *gin.Context) {
+	userID := ctx.MustGet("userID").(entity.UserID)
+
+	if err := h.userService.DisableByID(userID); err != nil {
+		httperrors.HandleError(ctx, err)
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
