@@ -9,5 +9,5 @@ type PostRepository interface {
 	FindByID(postID entity.PostID, userID entity.UserID) (*PostDetail, error)
 	Update(post *entity.Post) (*PostDetail, error)
 	DeleteByID(postID entity.PostID, userID entity.UserID) error
-	FindAll(userID entity.UserID) ([]PostList, error)
+	FindAll(userID entity.UserID, query PostQuery) ([]PostList, error)
 }
