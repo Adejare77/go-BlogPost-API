@@ -23,12 +23,12 @@ func (s *UserService) FindAll() ([]user.UserDetail, error) {
 	return s.repo.FindAll()
 }
 
-func (s *UserService) FindByID(userID entity.UserID) (*user.UserDetail, error) {
-	return s.repo.FindByID(userID)
+func (s *UserService) FindByID(targetUserID entity.UserID) (*user.UserDetail, error) {
+	return s.repo.FindByID(targetUserID)
 }
 
-func (s *UserService) DeleteByID(userID entity.UserID) error {
-	return s.repo.DeleteByID(userID)
+func (s *UserService) DeleteByID(targetUserID entity.UserID) error {
+	return s.repo.DeleteByID(targetUserID)
 }
 
 func (s *UserService) Update(user *entity.User) (*user.UserDetail, error) {
@@ -44,10 +44,10 @@ func (s *UserService) Update(user *entity.User) (*user.UserDetail, error) {
 	return s.repo.Update(user)
 }
 
-func (s *UserService) EnableByID(userID entity.UserID) error {
-	return s.repo.EnableByID(userID)
+func (s *UserService) EnableByID(targetUserID entity.UserID) error {
+	return s.repo.EnableByID(targetUserID)
 }
 
-func (s* UserService) DisableByID(userID entity.UserID) error {
-	return s.repo.DisableByID(userID)
+func (s* UserService) DisableByID(targetUserID entity.UserID) error {
+	return s.repo.DisableByID(targetUserID)
 }
