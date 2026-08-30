@@ -33,7 +33,7 @@ func Validator(ctx *gin.Context, req any, err validator.ValidationErrors) {
 		case fieldError.Tag() == "min":
 			value = "minimum of 3 length"
 
-		case fieldError.Tag() == "oneOf":
+		case fieldError.Tag() == "oneof":
 			value = "must be one of: published,draft,all"
 		}
 
