@@ -42,6 +42,10 @@ func (s *PostService) DeleteByID(postID entity.PostID, userID entity.UserID) err
 }
 
 func (s *PostService) FindAll(userID entity.UserID, query post.PostQuery, isStaff bool) ([]post.PostList, error) {
+	if query.Status == "" {
+		query.Status = "published"
+	}
+
 	if userID == 0 && (query.Status == "draft" || query.Status == "all") {
 		return []post.PostList{}, domainErrors.ErrUnauthorized
 	}
