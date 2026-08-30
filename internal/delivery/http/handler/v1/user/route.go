@@ -21,6 +21,7 @@ func RegisterRoutes(
 	) {
 	protected := r.Group("/users")
 	protected.Use(middleware.AuthMiddleware(tokenService))
+	protected.Use(middleware.UserMiddleware())
 
 	userRoute(protected, h)
 }
