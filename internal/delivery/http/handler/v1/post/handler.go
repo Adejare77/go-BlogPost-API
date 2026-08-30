@@ -6,10 +6,10 @@ import (
 
 	httperrors "github.com/Adejare77/go-BlogPost-API/internal/delivery/http/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
+	"github.com/Adejare77/go-BlogPost-API/internal/domain/post"
 	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 )
 
 
@@ -76,28 +76,37 @@ func (h *PostHandler) Create(ctx *gin.Context) {
 }
 
 func (h *PostHandler) FindByID(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("post_id"))
-	if err != nil {
+	var req PostPathRequest
+
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
 			"post_id",
-			"must be a valid UUID",
+			"invalid postId",
 			err,
 		)
-		return
 	}
 
-	postID := entity.PostID(id)
+	postID := entity.PostID(req.PostID)
 
 	var userID entity.UserID
+	isStaff := false
 
 	value, exist := ctx.Get("UserID")
 	if exist {
 		userID = value.(entity.UserID)
+		isStaff = ctx.MustGet("isStaff").(bool)
 	}
 
-	post, err := h.postService.FindByID(postID, userID)
+	post, err := h.postService.FindByID(postID, userID, isStaff)
 
 	if err != nil {
 		httperrors.HandleError(ctx, err)
@@ -163,19 +172,27 @@ func (h *PostHandler) Update(ctx *gin.Context) {
 		return
 	}
 
-	id, err := uuid.Parse(ctx.Param("post_id"))
-	if err != nil {
+	var path PostPathRequest
+
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
 			"post_id",
-			"must be a valid UUID",
+			"invalid path UUID",
 			err,
 		)
 		return
 	}
 
-	postID := entity.PostID(id)
+	postID := entity.PostID(path.PostID)
 	userID := ctx.MustGet("userID").(entity.UserID)
 
 	post := entity.Post{
@@ -230,22 +247,30 @@ func (h *PostHandler) Update(ctx *gin.Context) {
 }
 
 func (h *PostHandler) DeleteByID(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("post_id"))
-	if err != nil {
+	var req PostPathRequest
+
+	if err := ctx.ShouldBindUri(&req); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, req, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
-			"invalid_request",
-			"invalid request",
+			"post_id",
+			"invalid path UUID",
 			err,
 		)
 		return
 	}
 
-	postID := entity.PostID(id)
+	postID := entity.PostID(req.PostID)
 	userID := ctx.MustGet("userID").(entity.UserID)
 
-	if err = h.postService.DeleteByID(postID, userID); err != nil {
+	if err := h.postService.DeleteByID(postID, userID); err != nil {
 		httperrors.HandleError(ctx, err)
 		return
 	}
@@ -256,19 +281,45 @@ func (h *PostHandler) DeleteByID(ctx *gin.Context) {
 
 func (h *PostHandler) FindAll(ctx *gin.Context) {
 	var userID entity.UserID
+	var reqQuery PostQueryRequest
 
+	if err := ctx.ShouldBindUri(&reqQuery); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, reqQuery, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"invalid_queries",
+			"invalid queries",
+			err,
+		)
+		return
+	}
+
+	isStaff := false
 	value, exist := ctx.Get("UserID")
 	if exist {
 		userID = value.(entity.UserID)
+		isStaff = ctx.MustGet("isStaff").(bool)
 	}
 
-	response, err := h.postService.FindAll(userID)
+	query := post.PostQuery{
+		Status: reqQuery.Status,
+		Author: reqQuery.Author,
+	}
+
+	response, err := h.postService.FindAll(userID, query, isStaff)
 	if err != nil {
 		httperrors.HandleError(ctx, err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
+	ctx.JSON(http.StatusOK, gin.H {
 		"results": response,
 	})
 }
