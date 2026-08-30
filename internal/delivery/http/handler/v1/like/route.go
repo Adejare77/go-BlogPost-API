@@ -14,7 +14,7 @@ func RegisterRoutes(
 	protected.Use(middleware.AuthMiddleware(tokenService))
 
 	protected.POST("/comments/:comment_id/likes", h.CreateLikeComment)
-	protected.DELETE("/comments/:coment_id/likes", h.DeleteLikedComment)
+	protected.DELETE("/comments/:comment_id/likes", h.DeleteLikedComment)
 
 	protected.POST("/posts/:post_id/likes", h.CreateLikePost)
 	protected.DELETE("/posts/:post_id/likes", h.DeleteLikedPost)
