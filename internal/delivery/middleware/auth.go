@@ -12,7 +12,7 @@ func AuthMiddleware(tokenService auth.TokenService) gin.HandlerFunc {
 		token := ctx.GetHeader("Authorization")
 		if token == "" {
 			ctx.AbortWithStatusJSON(
-				http.StatusBadRequest,
+				http.StatusUnauthorized,
 				gin.H{
 					"code": "unauthorized",
 					"message": "unauthorized",
