@@ -155,3 +155,40 @@ func (h *AuthHandler) Me(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, response)
 }
+
+func (h *AuthHandler) RefreshToken(ctx *gin.Context){
+	token, err := ctx.Cookie("refresh_token")
+	if err != nil {
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"refresh_token",
+			"invalid refresh token",
+			err,
+		)
+		return
+	}
+
+	auth, err := h.authService.RefreshToken(token)
+	if err != nil {
+		httperrors.HandleError(ctx, err)
+		return
+	}
+
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name: "refresh_token",
+		Value: auth.RefreshToken,
+		MaxAge: int(config.Current.App.RefreshTokenTTL.Seconds()),
+		Path: "/",
+		SameSite: http.SameSiteLaxMode,
+		Secure: false,
+		HttpOnly: true,
+	})
+
+	response := AuthTokenResponse {
+		AccessToken: auth.AccessToken,
+		UserID: auth.UserID,
+	}
+
+	ctx.JSON(http.StatusOK, response)
+}
