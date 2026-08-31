@@ -55,12 +55,24 @@ func (s *AuthService) Login(email, password string) (*auth.AuthResult, error) {
 
 	accessToken, err := s.tokenService.GenerateAccessToken(user.ID)
 	if err != nil {
-		return nil, fmt.Errorf("error generating access token")
+		return nil, fmt.Errorf("error generating access token: %w", err)
 	}
 
 	refreshToken, err := s.tokenService.GenerateRefreshToken()
 	if err != nil {
-		return nil, fmt.Errorf("error generating refresh token")
+		return nil, fmt.Errorf("error generating refresh token: %w", err)
+	}
+
+	tokenHash, err := hashCredential(refreshToken, bcrypt.MinCost)
+	if err != nil {
+		return nil, fmt.Errorf("error hashing referesh token: %w", err)
+	}
+
+	if err := s.refreshTokenRepo.Create(&entity.RefreshToken{
+		UserID: user.ID,
+		TokenHash: tokenHash,
+	}); err != nil {
+		return nil, err
 	}
 
 	return &auth.AuthResult{
@@ -108,6 +120,8 @@ func (s *AuthService) RefreshToken(token string) (auth.AuthResult, error) {
 
 	retrieveToken, err := s.refreshTokenRepo.FindByTokenHash(tokenHash)
 	if err != nil {
+		fmt.Printf("=================== %s\n", token)
+		fmt.Printf("=================== %s\n",tokenHash)
 		return auth.AuthResult{}, err
 	}
 
