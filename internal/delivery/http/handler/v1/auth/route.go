@@ -10,6 +10,7 @@ var authPublicRoute = func(r *gin.RouterGroup, h *AuthHandler) {
 	r.POST("/login", h.Login)
 	r.POST("/register", h.Create)
 	r.POST("/logout", h.Logout)
+	r.POST("/refresh", h.RefreshToken)
 }
 
 var authPrivateRoute = func(r *gin.RouterGroup, h *AuthHandler) {
