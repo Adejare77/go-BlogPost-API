@@ -29,10 +29,11 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
-func (j *JWTTokenService) GenerateAccessToken(userID entity.UserID) (string, error) {
+func (j *JWTTokenService) GenerateAccessToken(userID entity.UserID, isStaff bool) (string, error) {
 	now := time.Now()
 	claims := Claims{
 		UserID: userID,
+		IsStaff: isStaff,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer: config.Current.App.JWTIssuer,
 			ExpiresAt: jwt.NewNumericDate(now.Add(time.Duration(config.Current.App.AccessTokenTTL))),
