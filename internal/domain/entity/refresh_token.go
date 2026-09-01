@@ -2,13 +2,14 @@ package entity
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
-type RefreshTokenID int
-
 type RefreshToken struct {
-	ID RefreshTokenID  `gorm:"primaryKey"`
-	UserID UserID `gorm:"type:uuid"`
+	ID uuid.UUID  `gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	UserID UserID
+	IsStaff bool
 	TokenHash string `gorm:"not null;index"`
 	RevokedAt *time.Time
 	ExpiresAt time.Time
