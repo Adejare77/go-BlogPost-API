@@ -5,6 +5,7 @@ import (
 
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 	domainErrors "github.com/Adejare77/go-BlogPost-API/internal/domain/errors"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -23,9 +24,9 @@ func (repo *RefreshTokenRepository) Create(token *entity.RefreshToken) error {
 	return MapError(repo.db.Create(token).Error)
 }
 
-func (repo *RefreshTokenRepository) RevokeToken(tokenHash string) error {
+func (repo *RefreshTokenRepository) RevokeToken(tokenID uuid.UUID) error {
 	result := repo.db.Model(&entity.RefreshToken{}).
-	Where("token_hash = ? AND revoked_at IS NULL", tokenHash).
+	Where("id = ? AND revoked_at IS NULL", tokenID).
 	Update("revoked_at", time.Now())
 
 	if result.RowsAffected == 0 {
@@ -35,14 +36,14 @@ func (repo *RefreshTokenRepository) RevokeToken(tokenHash string) error {
 	return nil
 }
 
-func (repo *RefreshTokenRepository) FindByTokenHash(tokenHash string) (*entity.RefreshToken, error) {
-	var token entity.RefreshToken
+func (repo *RefreshTokenRepository) FindByTokenID(tokenID uuid.UUID) (*entity.RefreshToken, error) {
+	var tokenHash entity.RefreshToken
 
 	if err := repo.db.
-	Where("token_hash = ?", tokenHash).
-	First(&token).Error; err != nil {
+	Where("id = ?", tokenID).
+	First(&tokenHash).Error; err != nil {
 		return nil, domainErrors.ErrInvalidToken
 	}
 
-	return &token, nil
+	return &tokenHash, nil
 }
