@@ -19,7 +19,15 @@ func NewPostRepository(db *gorm.DB) *PostRepository {
 }
 
 func (repo *PostRepository) Create(post *entity.Post) error {
-	return MapError(repo.db.Create(post).Error)
+
+	if err := repo.db.Create(post).Error; err !=  nil {
+		return MapError(err)
+	}
+
+	return MapError(
+		repo.db.Preload("Author").
+		First(post, "id = ?", post.ID).Error,
+	)
 }
 
 func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID) (*post.PostDetail, error) {
@@ -148,8 +156,6 @@ func (repo *PostRepository) DeleteByID(postID entity.PostID, userID entity.UserI
 	return nil
 }
 
-// func
-
 func (repo *PostRepository) FindAll(userID entity.UserID, query post.PostQuery) ([]post.PostList, error) {
 	var list []PostListRow
 
@@ -186,7 +192,6 @@ func (repo *PostRepository) FindAll(userID entity.UserID, query post.PostQuery) 
 		) AS liked
 	`, userID).
 	Joins("JOIN users ON users.id = posts.author_id").
-	Where("is_published = ?", query.Status).
 	Order("posts.created_at DESC, likes DESC").
 	Scan(&list).Error; err != nil {
 		return nil, MapError(err)
