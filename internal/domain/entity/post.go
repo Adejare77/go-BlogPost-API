@@ -1,6 +1,8 @@
 package entity
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,4 +21,24 @@ type Post struct {
 	IsPublished bool `gorm:"not null;default:false"`
 	CreatedAt time.Time `gorm:"index"`
 	UpdatedAt time.Time
+}
+
+func (id *PostID) Scan(value any) error {
+	var u uuid.UUID
+
+	if err := u.Scan(value); err != nil {
+		return err
+	}
+
+	*id = PostID(u)
+
+	return nil
+}
+
+func (id PostID) Value() (driver.Value, error) {
+	return uuid.UUID(id).Value()
+}
+
+func (id PostID) MarshalJSON() ([]byte, error) {
+	return json.Marshal(uuid.UUID(id).String())
 }
