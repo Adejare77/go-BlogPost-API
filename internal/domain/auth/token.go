@@ -5,7 +5,7 @@ import (
 )
 
 type TokenService interface {
-	GenerateAccessToken(userID entity.UserID) (string, error)
+	GenerateAccessToken(userID entity.UserID, isStaff bool) (string, error)
 	GenerateRefreshToken() (string, error)
 	Validate(tokenString string) (any, error)
 }
