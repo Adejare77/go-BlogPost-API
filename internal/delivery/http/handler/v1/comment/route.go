@@ -14,7 +14,8 @@ var commentProtectedRoute = func(r *gin.RouterGroup, h *CommentHandler) {
 }
 
 var commentPublicRoute = func(r *gin.RouterGroup, h *CommentHandler) {
-	r.GET("/comments", h.FindByID)
+	r.GET("/comments/:comment_id", h.FindByID)
+	r.GET("/posts/:post_id/comments", h.FindByPostID)
 }
 
 
