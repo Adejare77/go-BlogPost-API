@@ -11,15 +11,17 @@ import (
 )
 
 
-func Setup(
-	r *gin.Engine,
+func SetupRouter(
 	userHandler *user.UserHandler,
 	postHandler *post.PostHandler,
 	commentHandler *comment.CommentHandler,
 	likeHandler *like.LikeHandler,
 	authHandler *httpauth.AuthHandler,
 	tokenService domainauth.TokenService,
-	) {
+	) *gin.Engine {
+
+		r := gin.Default()
+
 		api := r.Group("/api")
 
 		v1 := api.Group("/v1")
@@ -30,4 +32,6 @@ func Setup(
 		like.RegisterRoutes(v1, likeHandler, tokenService)
 		httpauth.RegisterRoutes(v1, authHandler, tokenService)
 
+
+		return r
 }
