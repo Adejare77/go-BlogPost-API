@@ -7,16 +7,16 @@ import (
 	"github.com/Adejare77/go-BlogPost-API/internal/config"
 	httperrors "github.com/Adejare77/go-BlogPost-API/internal/delivery/http/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
-	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
+	"github.com/Adejare77/go-BlogPost-API/internal/usecase/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type AuthHandler struct {
-	authService *usecase.AuthService
+	authService *auth.AuthService
 }
 
-func NewAuthHandler(authservice *usecase.AuthService) *AuthHandler {
+func NewAuthHandler(authservice *auth.AuthService) *AuthHandler {
 	return &AuthHandler{
 		authService: authservice,
 	}
@@ -49,11 +49,6 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 		return
 	}
 
-	response := AuthTokenResponse{
-		AccessToken: auth.AccessToken,
-		UserID: auth.UserID,
-	}
-
 	http.SetCookie(ctx.Writer, &http.Cookie{
 		Name: "refresh_token",
 		Value: auth.RefreshToken,
@@ -64,7 +59,10 @@ func (h *AuthHandler) Login(ctx *gin.Context) {
 		HttpOnly: true,
 	})
 
-	ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, gin.H{
+		"access_token": auth.AccessToken,
+		"user_id": auth.UserID,
+	})
 }
 
 func (h *AuthHandler) Logout(ctx *gin.Context) {
@@ -123,34 +121,23 @@ func (h *AuthHandler) Create(ctx *gin.Context) {
 		Password: &req.Password,
 	}
 
-	if err := h.authService.Register(&user); err != nil {
-		httperrors.HandleError(ctx, err)
-		return
-	}
-
-	ctx.JSON(http.StatusCreated, AuthResponse{
-		ID: user.ID,
-		FullName: user.FullName,
-		Email: user.Email,
-		CreatedAt: user.CreatedAt,
-	})
-}
-
-func (h *AuthHandler) Me(ctx *gin.Context) {
-	userID := ctx.MustGet("userID").(entity.UserID)
-
-	user, err := h.authService.FindByID(userID)
-
+	response, err := h.authService.Register(&user)
 	if err != nil {
 		httperrors.HandleError(ctx, err)
 		return
 	}
 
-	response := AuthResponse{
-		ID: user.ID,
-		FullName: user.FullName,
-		Email: user.Email,
-		CreatedAt: user.CreatedAt,
+	ctx.JSON(http.StatusCreated, response)
+}
+
+func (h *AuthHandler) Me(ctx *gin.Context) {
+	userID := ctx.MustGet("userID").(entity.UserID)
+
+	response, err := h.authService.FindByID(userID)
+
+	if err != nil {
+		httperrors.HandleError(ctx, err)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, response)
@@ -185,10 +172,8 @@ func (h *AuthHandler) RefreshToken(ctx *gin.Context){
 		HttpOnly: true,
 	})
 
-	response := AuthTokenResponse {
-		AccessToken: auth.AccessToken,
-		UserID: auth.UserID,
-	}
-
-	ctx.JSON(http.StatusOK, response)
+	ctx.JSON(http.StatusOK, gin.H{
+		"access_token": auth.AccessToken,
+		"user_id": auth.UserID,
+	})
 }
