@@ -5,8 +5,9 @@ import (
 	"net/http"
 
 	httperrors "github.com/Adejare77/go-BlogPost-API/internal/delivery/http/errors"
+	"github.com/Adejare77/go-BlogPost-API/internal/delivery/http/handler/v1/post"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
-	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
+	"github.com/Adejare77/go-BlogPost-API/internal/usecase/comment"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -14,19 +15,40 @@ import (
 
 
 type CommentHandler struct {
-	commentService *usecase.CommentService
+	commentService *comment.CommentService
 }
 
-func NewCommentHandler(commentService *usecase.CommentService) *CommentHandler {
+func NewCommentHandler(commentService *comment.CommentService) *CommentHandler {
 	return &CommentHandler{
 		commentService: commentService,
 	}
 }
 
 func (h *CommentHandler) CreateComment(ctx *gin.Context) {
-	var req CommentRequest
 	userID := ctx.MustGet("userID").(entity.UserID)
 
+	var path post.PostPathRequest
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"post_id",
+			"must be a valid UUID",
+			err,
+		)
+		return
+	}
+
+	postID := entity.PostID(uuid.MustParse(path.PostID))
+
+	var req CommentRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		var validationErrs validator.ValidationErrors
 
@@ -45,50 +67,25 @@ func (h *CommentHandler) CreateComment(ctx *gin.Context) {
 		return
 	}
 
-
-	id, err := uuid.Parse(ctx.Param("post_id"))
-	if err != nil {
-		httperrors.HandleRequestError(
-			ctx,
-			http.StatusBadRequest,
-			"post_id",
-			"must be a valid UUID",
-			err,
-		)
-		return
-	}
-
-	postID := entity.PostID(id)
-
 	comment := entity.Comment{
 		AuthorID: userID,
 		PostID: postID,
 		Content: req.Content,
 	}
 
-	if err := h.commentService.Create(&comment); err != nil {
+	response, err := h.commentService.Create(&comment)
+	if err != nil {
 		httperrors.HandleError(ctx, err)
 		return
-	}
-
-	response := CommentCreateResponse {
-		ID: comment.ID,
-		Author: AuthorSummary{
-			ID: comment.Author.ID,
-			FullName: comment.Author.FullName,
-		},
-		PostID: comment.PostID,
-		Content: comment.Content,
-		CreatedAt: comment.CreatedAt,
 	}
 
 	ctx.JSON(http.StatusCreated, response)
 }
 
 func (h *CommentHandler) CreateReply(ctx *gin.Context) {
-	var req CommentRequest
 	userID := ctx.MustGet("userID").(entity.UserID)
 
+	var req CommentRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		var validationErrs validator.ValidationErrors
 
@@ -107,8 +104,16 @@ func (h *CommentHandler) CreateReply(ctx *gin.Context) {
 		return
 	}
 
-	id, err := uuid.Parse(ctx.Param("comment_id"))
-	if err != nil {
+	var path CommentPathRequest
+
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
@@ -119,7 +124,7 @@ func (h *CommentHandler) CreateReply(ctx *gin.Context) {
 		return
 	}
 
-	parentID := entity.CommentID(id)
+	parentID := entity.CommentID(uuid.MustParse(path.CommentID))
 
 	comment := entity.Comment{
 		AuthorID: userID,
@@ -127,19 +132,10 @@ func (h *CommentHandler) CreateReply(ctx *gin.Context) {
 		Content: req.Content,
 	}
 
-	if err := h.commentService.Create(&comment); err != nil {
+	response, err := h.commentService.Create(&comment)
+	if err != nil {
 		httperrors.HandleError(ctx, err)
 		return
-	}
-
-	response := CommentCreateResponse {
-		ID: comment.ID,
-		Author: AuthorSummary{
-			ID: comment.Author.ID,
-			FullName: comment.Author.FullName,
-		},
-		Content: comment.Content,
-		CreatedAt: comment.CreatedAt,
 	}
 
 	ctx.JSON(http.StatusCreated, response)
@@ -147,9 +143,16 @@ func (h *CommentHandler) CreateReply(ctx *gin.Context) {
 
 func (h *CommentHandler) FindByID(ctx *gin.Context) {
 	var userID entity.UserID
+	var path CommentPathRequest
 
-	id, err := uuid.Parse(ctx.Param("comment_id"))
-	if err != nil {
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
@@ -160,46 +163,16 @@ func (h *CommentHandler) FindByID(ctx *gin.Context) {
 		return
 	}
 
-	commentID := entity.CommentID(id)
+	commentID := entity.CommentID(uuid.MustParse(path.CommentID))
 
-	if v, ok := ctx.Get("userID"); ok {
-		userID = v.(entity.UserID)
+	if value, exist := ctx.Get("userID"); exist {
+		userID = value.(entity.UserID)
 	}
 
-	comment, err := h.commentService.FindByID(commentID, userID)
+	response, err := h.commentService.FindByID(commentID, userID)
 	if err != nil {
 		httperrors.HandleError(ctx, err)
 		return
-	}
-
-	topReplies := make([]CommentListResponse, len(comment.TopReplies) )
-	for i, v := range comment.TopReplies {
-		topReplies[i] = CommentListResponse{
-			ID: v.ID,
-			Author: AuthorSummary{
-				v.Author.ID,
-				v.Author.FullName,
-			},
-			PostID: v.PostID,
-			Excerpt: v.Excerpt,
-			Likes: v.Likes,
-			ReplyCount: v.ReplyCount,
-			CreatedAt: v.CreatedAt,
-		}
-	}
-
-	response := CommentDetailResponse{
-		ID: comment.ID,
-		Author: AuthorSummary{
-			ID: comment.Author.ID,
-			FullName: comment.Author.FullName,
-		},
-		Content: comment.Content,
-		Likes: comment.Likes,
-		Liked: comment.Liked,
-		ReplyCount: comment.ReplyCount,
-		TopReplies: topReplies,
-		CreatedAt: comment.CreatedAt,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -228,10 +201,16 @@ func (h *CommentHandler) Update(ctx *gin.Context) {
 		return
 	}
 
-	userID := ctx.MustGet("userID").(entity.UserID)
+	var path CommentPathRequest
 
-	id, err := uuid.Parse(ctx.Param("comment_id"))
-	if err != nil {
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
@@ -242,7 +221,8 @@ func (h *CommentHandler) Update(ctx *gin.Context) {
 		return
 	}
 
-	commentID := entity.CommentID(id)
+	userID := ctx.MustGet("userID").(entity.UserID)
+	commentID := entity.CommentID(uuid.MustParse(path.CommentID))
 
 	comment := entity.Comment {
 		ID: commentID,
@@ -262,8 +242,16 @@ func (h *CommentHandler) Update(ctx *gin.Context) {
 
 
 func (h *CommentHandler) DeleteByID(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("comment_id"))
-	if err != nil {
+	var path CommentPathRequest
+
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, &validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
@@ -274,7 +262,7 @@ func (h *CommentHandler) DeleteByID(ctx *gin.Context) {
 		return
 	}
 
-	commentID := entity.CommentID(id)
+	commentID := entity.CommentID(uuid.MustParse(path.CommentID))
 	userID := ctx.MustGet("userID").(entity.UserID)
 
 	if err := h.commentService.DeleteByID(commentID, userID); err != nil {
@@ -283,4 +271,42 @@ func (h *CommentHandler) DeleteByID(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusNoContent)
+}
+
+func (h *CommentHandler) FindByPostID(ctx *gin.Context) {
+	var path post.PostPathRequest
+
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
+		httperrors.HandleRequestError(
+			ctx,
+			http.StatusBadRequest,
+			"post_id",
+			"must be a valid UUID",
+			err,
+		)
+		return
+	}
+
+	var userID entity.UserID
+
+	postID := entity.PostID(uuid.MustParse(path.PostID))
+	if user, exists := ctx.Get("userID"); exists {
+		userID = user.(entity.UserID)
+	}
+
+
+	response, err := h.commentService.FindByPostID(postID, userID)
+	if err != nil {
+		httperrors.HandleError(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }
