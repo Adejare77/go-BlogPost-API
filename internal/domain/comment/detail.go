@@ -6,31 +6,17 @@ import (
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 )
 
-type AuthorSummary struct {
-	ID entity.UserID
-	FullName string
-}
 
-type CommentDetail struct {
+type CommentDetailRow struct {
 	ID entity.CommentID
-	Author AuthorSummary
+	AuthorID entity.UserID
+	FullName string
 	PostID entity.PostID
+	ParentID *entity.CommentID
 	Content string
 	Likes int
 	Liked bool
 	ReplyCount int
-	TopReplies []ReplySummary
-	CreatedAt time.Time
-}
-
-type ReplySummary struct {
-	ID entity.CommentID
-	Author AuthorSummary
-	PostID entity.PostID
-	ParentID entity.CommentID
-	Excerpt string
-	Likes int
-	Liked bool
-	ReplyCount int
+	TopReplies []CommentListRow `gorm:"-"`
 	CreatedAt time.Time
 }
