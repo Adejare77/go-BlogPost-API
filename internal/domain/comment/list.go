@@ -6,11 +6,13 @@ import (
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 )
 
-type CommentList struct {
+type CommentListRow struct {
 	ID entity.CommentID
-	Author AuthorSummary
+	AuthorID entity.UserID
+	FullName string
 	PostID entity.PostID
-	Excerpt string
+	ParentID *entity.CommentID
+	Content string
 	Likes int
 	Liked bool
 	ReplyCount int
