@@ -16,7 +16,7 @@ func NewLikeRepository(db *gorm.DB) *LikeRepository {
 }
 
 func (repo *LikeRepository) Create(like *entity.Like) error {
-	return MapError(repo.db.Create(like).Error)
+	return MapError(repo.db.FirstOrCreate(like).Error)
 }
 
 func (repo *LikeRepository) DeleteByUserAndPost(userID entity.UserID, postID entity.LikeID) error {
