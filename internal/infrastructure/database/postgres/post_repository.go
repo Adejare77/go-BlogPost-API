@@ -30,8 +30,8 @@ func (repo *PostRepository) Create(post *entity.Post) error {
 	)
 }
 
-func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID) (*post.PostDetail, error) {
-	var detail PostDetailRow
+func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID) (*post.PostDetailRow, error) {
+	var detail post.PostDetailRow
 
 	err := repo.db.Model(&entity.Post{}).
 	Select(`
@@ -44,14 +44,14 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 		posts.created_at,
 
 		(
-			SELECT COUNT(*),
+			SELECT COUNT(*)
 			FROM likes
 			WHERE likes.likeable_id = posts.id
 			AND likes.likeable_type = 'post'
 		) AS likes,
 
 		(
-			SELECT COUNT(*),
+			SELECT COUNT(*)
 			FROM comments
 			WHERE comments.post_id = posts.id
 			AND comments.parent_id IS NULL
@@ -73,9 +73,9 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 		return nil, MapError(err)
 	}
 
-	var commentlist []CommentListRow
+	var commentlist []comment.CommentListRow
 
-	err = repo.db.Model(&entity.Comment{}).
+	err = repo.db.Table("comments").
 	Select(`
 		comments.id AS id,
 		comments.author_id AS author_id,
@@ -88,13 +88,13 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 			FROM likes
 			WHERE likes.likeable_id = comments.id
 			AND likes.likeable_type = 'comment'
-		) AS likes
+		) AS likes,
 
 		(
 			SELECT COUNT(*)
 			FROM comments AS replies
 			WHERE replies.parent_id = comments.id
-		) AS reply_count
+		) AS reply_count,
 
 		EXISTS (
 			SELECT 1
@@ -114,18 +114,12 @@ func (repo *PostRepository) FindByID(postID entity.PostID, userID entity.UserID)
 		return nil, MapError(err)
 	}
 
-	comments := make([]comment.CommentList, len(commentlist))
-	for i, comment := range commentlist {
-		comments[i] = comment.ToCommentList()
-	}
+	detail.TopComments = commentlist
 
-	detail.TopComments = comments
-
-	return detail.ToPostDetail(), nil
+	return &detail, nil
 }
 
-
-func (repo *PostRepository) Update(post *entity.Post) (*post.PostDetail, error) {
+func (repo *PostRepository) Update(post *entity.Post) (*post.PostDetailRow, error) {
 	result := repo.db.Model(&entity.Post{}).
 	Where("id = ? AND author_id = ?", post.ID, post.AuthorID).Updates(post)
 
@@ -156,8 +150,8 @@ func (repo *PostRepository) DeleteByID(postID entity.PostID, userID entity.UserI
 	return nil
 }
 
-func (repo *PostRepository) FindAll(userID entity.UserID, query post.PostQuery) ([]post.PostList, error) {
-	var list []PostListRow
+func (repo *PostRepository) FindAll(userID entity.UserID, query post.PostQuery) ([]post.PostListRow, error) {
+	var posts []post.PostListRow
 
 	if err := repo.db.Table("posts").
 	Scopes(PostQueryScope(userID, query)).
@@ -193,14 +187,8 @@ func (repo *PostRepository) FindAll(userID entity.UserID, query post.PostQuery) 
 	`, userID).
 	Joins("JOIN users ON users.id = posts.author_id").
 	Order("posts.created_at DESC, likes DESC").
-	Scan(&list).Error; err != nil {
+	Scan(&posts).Error; err != nil {
 		return nil, MapError(err)
-	}
-
-	posts := make([]post.PostList, len(list))
-
-	for i, p := range list {
-		posts[i] = p.ToPostList()
 	}
 
 	return posts, nil
