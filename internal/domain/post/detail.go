@@ -12,15 +12,16 @@ type AuthorSummary struct {
 	FullName string
 }
 
-type PostDetail struct {
+type PostDetailRow struct {
 	ID entity.PostID
-	Author AuthorSummary
+	AuthorID entity.UserID
+	FullName string
 	Title string
 	Content string
 	Likes int
 	Liked bool
 	IsPublished bool
 	CommentCount int
-	TopComments []comment.CommentList
+	TopComments []comment.CommentListRow `gorm:"-"`
 	CreatedAt time.Time
 }
