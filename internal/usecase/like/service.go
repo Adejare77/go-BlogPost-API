@@ -1,4 +1,4 @@
-package usecase
+package like
 
 import (
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"

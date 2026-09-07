@@ -1,4 +1,4 @@
-package usecase
+package auth
 
 import (
 	"fmt"
@@ -75,7 +75,6 @@ func (s *AuthService) Login(email, password string) (*auth.AuthResult, error) {
 		return nil, fmt.Errorf("error hashing referesh token: %w", err)
 	}
 
-
 	token := entity.RefreshToken {
 		UserID: user.ID,
 		IsStaff: user.IsStaff,
@@ -107,20 +106,43 @@ func (s *AuthService) Logout(token string) error {
 	return s.refreshTokenRepo.RevokeToken(tokenID)
 }
 
-func (s *AuthService) Register(user *entity.User) error {
+func (s *AuthService) Register(user *entity.User) (*AuthResponse, error) {
 	if user.Password != nil {
 		password, err := hashCredential(*user.Password, bcrypt.DefaultCost)
 		if err != nil {
-			return fmt.Errorf("error hashing password: %w", err)
+			return nil, fmt.Errorf("error hashing password: %w", err)
 		}
 		user.Password = &password
 	}
 
-	return s.userRepo.Create(user)
+	if err := s.userRepo.Create(user); err != nil {
+		return nil, err
+	}
+
+	response := AuthResponse{
+		ID: user.ID,
+		FullName: user.FullName,
+		Email: user.Email,
+		CreatedAt: user.CreatedAt,
+	}
+
+	return &response, nil
 }
 
-func (s *AuthService) FindByID(userID entity.UserID) (*user.UserDetail, error) {
-	return s.userRepo.FindByID(userID)
+func (s *AuthService) FindByID(userID entity.UserID) (*AuthResponse, error) {
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	response := AuthResponse{
+		ID: user.ID,
+		FullName: user.FullName,
+		Email: user.Email,
+		CreatedAt: user.CreatedAt,
+	}
+
+	return &response, nil
 }
 
 func (s *AuthService) RefreshToken(token string) (auth.AuthResult, error) {
