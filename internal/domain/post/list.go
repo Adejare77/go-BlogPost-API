@@ -6,11 +6,12 @@ import (
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
 )
 
-type PostList struct {
+type PostListRow struct {
 	ID entity.PostID
-	Author AuthorSummary
+	AuthorID entity.UserID
+	FullName string
 	Title string
-	Excerpt string
+	Content string
 	Likes int
 	Liked bool
 	IsPublished bool
