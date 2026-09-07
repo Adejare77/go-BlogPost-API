@@ -6,17 +6,17 @@ import (
 
 	httperrors "github.com/Adejare77/go-BlogPost-API/internal/delivery/http/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
-	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
+	"github.com/Adejare77/go-BlogPost-API/internal/usecase/user"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 
 type UserHandler struct {
-	userService *usecase.UserService
+	userService *user.UserService
 }
 
-func NewUserHandler(userSerivce *usecase.UserService) *UserHandler {
+func NewUserHandler(userSerivce *user.UserService) *UserHandler {
 	return &UserHandler{
 		userService: userSerivce,
 	}
