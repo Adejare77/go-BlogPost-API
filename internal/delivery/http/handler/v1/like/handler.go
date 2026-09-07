@@ -1,28 +1,38 @@
 package like
 
 import (
+	"errors"
 	"net/http"
 
 	httperrors "github.com/Adejare77/go-BlogPost-API/internal/delivery/http/errors"
 	"github.com/Adejare77/go-BlogPost-API/internal/domain/entity"
-	"github.com/Adejare77/go-BlogPost-API/internal/usecase"
+	"github.com/Adejare77/go-BlogPost-API/internal/usecase/like"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
 
 type LikeHandler struct {
-	likeService *usecase.LikeService
+	likeService *like.LikeService
 }
 
-func NewLikeHandler(likeService *usecase.LikeService) *LikeHandler {
+func NewLikeHandler(likeService *like.LikeService) *LikeHandler {
 	return &LikeHandler{
 		likeService: likeService,
 	}
 }
 
 func (h *LikeHandler) CreateLikePost(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("post_id"))
-	if err != nil {
+	var path LikeRequestPostPath
+
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
@@ -34,7 +44,7 @@ func (h *LikeHandler) CreateLikePost(ctx *gin.Context) {
 	}
 
 	userID := ctx.MustGet("userID").(entity.UserID)
-	postID := entity.LikeID(id)
+	postID := entity.LikeID(uuid.MustParse(path.PostID))
 
 	like := entity.Like{
 		UserID: userID,
@@ -51,8 +61,16 @@ func (h *LikeHandler) CreateLikePost(ctx *gin.Context) {
 }
 
 func (h *LikeHandler) CreateLikeComment(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("comment_id"))
-	if err != nil {
+	var path LikeRequestCommentPath
+
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
@@ -64,7 +82,7 @@ func (h *LikeHandler) CreateLikeComment(ctx *gin.Context) {
 	}
 
 	userID := ctx.MustGet("userID").(entity.UserID)
-	commentID := entity.LikeID(id)
+	commentID := entity.LikeID(uuid.MustParse(path.CommentID))
 
 	like := entity.Like{
 		UserID: userID,
@@ -81,8 +99,16 @@ func (h *LikeHandler) CreateLikeComment(ctx *gin.Context) {
 }
 
 func (h *LikeHandler) DeleteLikedPost(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("post_id"))
-	if err != nil {
+	var path LikeRequestPostPath
+
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
@@ -94,7 +120,7 @@ func (h *LikeHandler) DeleteLikedPost(ctx *gin.Context) {
 	}
 
 	userID := ctx.MustGet("userID").(entity.UserID)
-	postID := entity.LikeID(id)
+	postID := entity.LikeID(uuid.MustParse(path.PostID))
 
 	if err := h.likeService.DeleteByUserAndPost(userID, postID); err != nil {
 		httperrors.HandleError(ctx, err)
@@ -105,8 +131,16 @@ func (h *LikeHandler) DeleteLikedPost(ctx *gin.Context) {
 }
 
 func (h *LikeHandler) DeleteLikedComment(ctx *gin.Context) {
-	id, err := uuid.Parse(ctx.Param("comment_id"))
-	if err != nil {
+	var path LikeRequestCommentPath
+
+	if err := ctx.ShouldBindUri(&path); err != nil {
+		var validationErrs validator.ValidationErrors
+
+		if errors.As(err, validationErrs) {
+			httperrors.Validator(ctx, path, validationErrs)
+			return
+		}
+
 		httperrors.HandleRequestError(
 			ctx,
 			http.StatusBadRequest,
@@ -118,7 +152,7 @@ func (h *LikeHandler) DeleteLikedComment(ctx *gin.Context) {
 	}
 
 	userID := ctx.MustGet("userID").(entity.UserID)
-	commentID := entity.LikeID(id)
+	commentID := entity.LikeID(uuid.MustParse(path.CommentID))
 
 	if err := h.likeService.DeleteByUserAndPost(userID, commentID); err != nil {
 		httperrors.HandleError(ctx, err)
