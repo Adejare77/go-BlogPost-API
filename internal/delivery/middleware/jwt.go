@@ -57,10 +57,6 @@ func (*JWTTokenService) GenerateRefreshToken() (string, error) {
 }
 
 func (j *JWTTokenService) Validate(tokenString string) (any, error) {
-	if tokenString == "" {
-		return nil, fmt.Errorf("empty token")
-	}
-
 	const prefix = "Bearer "
 
 	if !strings.HasPrefix(tokenString, prefix) {
