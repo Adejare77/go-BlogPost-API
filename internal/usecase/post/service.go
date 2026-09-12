@@ -67,11 +67,11 @@ func (s *PostService) FindAll(userID entity.UserID, query post.PostQuery, isStaf
 		query.Status = "published"
 	}
 
-	if userID == 0 && (query.Status == "draft" || query.Status == "all") {
+	if userID == 0 && ((query.Status == "draft" || query.Status == "all") || query.Author == "me") {
 		return nil, domainErrors.ErrUnauthorized
 	}
 
-	if query.Status != "published" && query.Author != "me" && query.Author == "" && !isStaff {
+	if query.Status != "published" && query.Author != "me" && query.Author != "" && !isStaff {
 		return nil, domainErrors.ErrForbidden
 	}
 
@@ -79,5 +79,6 @@ func (s *PostService) FindAll(userID entity.UserID, query post.PostQuery, isStaf
 	if err != nil {
 		return nil, err
 	}
+
 	return ToPostList(result), nil
 }
