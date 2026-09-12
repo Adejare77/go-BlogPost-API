@@ -22,11 +22,11 @@ func PostQueryScope(userID entity.UserID, query post.PostQuery) func (*gorm.DB) 
 		}
 
 		// Author filter
-		switch query.Author {
-		case "":
+		switch {
+		case query.Author == "" && userID == entity.UserID(0):
 			return db
 
-		case "me":
+		case query.Author == "" || query.Author == "me":
 			return db.Where("author_id = ?", userID)
 
 		default:
